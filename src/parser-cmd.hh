@@ -109,6 +109,7 @@ _VTE_CMD(SD_OR_XTERM_IHMT) /* scroll down or xterm initiate highlight mouse trac
 _VTE_CMD(SGR) /* select graphics rendition */
 _VTE_CMD(SM_DEC) /* set mode dec */
 _VTE_CMD(SM_ECMA) /* set mode ecma */
+_VTE_CMD(SPD) /* select presentation directions */
 _VTE_CMD(SS2) /* single shift 2 */
 _VTE_CMD(SS3) /* single shift 3 */
 _VTE_CMD(SUB) /* substitute */
@@ -289,7 +290,6 @@ _VTE_NOP(SL) /* scroll left */
 _VTE_NOP(SLS) /* set line spacing */
 _VTE_NOP(SOH) /* start of heading */
 _VTE_NOP(SPA) /* start of protected area */
-_VTE_NOP(SPD) /* select presentation directions */
 _VTE_NOP(SPH) /* set page home */
 _VTE_NOP(SPI) /* spacing increment */
 _VTE_NOP(SPL) /* set page limit */

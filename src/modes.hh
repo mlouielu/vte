@@ -170,7 +170,8 @@ public:
 #undef MODE
 #undef MODE_FIXED
 
-        constexpr ECMA() : Self{eSRM} { }
+        constexpr ECMA() : Self{eBDSM,
+                                eSRM} { }
 
 }; // class ECMA
 

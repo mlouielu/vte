@@ -9970,6 +9970,8 @@ Terminal::reset(bool clear_tabstops,
         /* Reset the saved cursor. */
         save_cursor(&m_normal_screen);
         save_cursor(&m_alternate_screen);
+        /* BiDi */
+        m_bidi_rtl = FALSE;
 	/* Cause everything to be redrawn (or cleared). */
 	invalidate_all();
 

@@ -59,7 +59,7 @@ _VTE_NOQ(SEE,                    CSI,    'Q',  NONE,  0, NONE     ) /* select ed
 _VTE_NOQ(PPR,                    CSI,    'Q',  NONE,  1, SPACE    ) /* page-position-relative */
 _VTE_NOQ(PPB,                    CSI,    'R',  NONE,  1, SPACE    ) /* page-position-backward */
 _VTE_SEQ(SU,                     CSI,    'S',  NONE,  0, NONE     ) /* scroll-up */
-_VTE_NOQ(SPD,                    CSI,    'S',  NONE,  1, SPACE    ) /* select presentation directions */
+_VTE_SEQ(SPD,                    CSI,    'S',  NONE,  1, SPACE    ) /* select presentation directions */
 _VTE_NOQ(XTERM_SGFX,             CSI,    'S',  WHAT,  0, NONE     ) /* xterm-sixel-graphics */
 _VTE_SEQ(SD_OR_XTERM_IHMT,       CSI,    'T',  NONE,  0, NONE     ) /* scroll-down or xterm-initiate-highlight-mouse-tracking */
 _VTE_NOQ(DTA,                    CSI,    'T',  NONE,  1, SPACE    ) /* dimension text area */

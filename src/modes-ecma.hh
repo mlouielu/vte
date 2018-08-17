@@ -39,6 +39,20 @@
 MODE(IRM,  4)
 
 /*
+ * BDSM - Bi-Directional Support Mode
+ *
+ * Reset state is explicit mode, set state is implicit mode
+ *
+ * References: ECMA-48
+ *             ECMA TR/53
+ *             [FIXME link to our spec]
+ *
+ * Default in ECMA: reset
+ * Default in VTE: set
+ */
+MODE(BDSM, 8)
+
+/*
  * SRM - local echo send/receive mode
  * If reset, characters entered by the keyboard are shown on the
  * screen as well as being sent to the host; if set, the
@@ -59,8 +73,7 @@ MODE_FIXED(CRM,   3, ALWAYS_RESET)
 MODE_FIXED(SRTM,  5, ALWAYS_RESET)
 MODE_FIXED(ERM,   6, ALWAYS_RESET)
 MODE_FIXED(VEM,   7, ALWAYS_RESET)
-MODE_FIXED(BDSM,  8, ALWAYS_RESET)
-MODE_FIXED(DCSM,  9, ALWAYS_RESET)
+MODE_FIXED(DCSM,  9, ALWAYS_SET)
 MODE_FIXED(HEM,  10, ALWAYS_RESET)
 MODE_FIXED(PUM,  11, ALWAYS_RESET) /* ECMA-48 § F.4.1 Deprecated */
 MODE_FIXED(FEAM, 13, ALWAYS_RESET)
