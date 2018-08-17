@@ -456,6 +456,13 @@ Terminal::set_mode_ecma(vte::parser::Sequence const& seq,
                         continue;
 
                 m_modes_ecma.set(mode, set);
+
+                if (mode == m_modes_ecma.eBDSM) {
+                        _vte_debug_print(VTE_DEBUG_BIDI,
+                                         "BiDi %s mode\n",
+                                         set ? "implicit" : "explicit");
+                        /* Will need to take immediate action too */
+                }
         }
 }
 
