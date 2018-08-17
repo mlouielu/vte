@@ -253,6 +253,7 @@ GLIB_REQUIRED=2.40.0
 GIO_REQUIRED=2.40.0
 PANGO_REQUIRED=1.22.0
 GNUTLS_REQUIRED=3.2.7
+FRIBIDI_REQUIRED=0.19.7  # FIXME bump to 1.0 whenever I upgrade :)
 PCRE2_REQUIRED=10.21
 
 # GNUTLS
@@ -271,6 +272,23 @@ if test "$with_gnutls" = "yes"; then
 fi
 
 AM_CONDITIONAL([WITH_GNUTLS],[test "$with_gnutls" = "yes"])
+
+# FRIBIDI
+
+AC_MSG_CHECKING([whether BiDi support is requested])
+AC_ARG_WITH([fribidi],
+  [AS_HELP_STRING([--without-fribidi],[Disable BiDi support])],
+  [],[with_fribidi=yes])
+AC_MSG_RESULT([$with_fribidi])
+
+FRIBIDI_PKGS=
+if test "$with_fribidi" = "yes"; then
+  FRIBIDI_PKGS="fribidi >= $FRIBIDI_REQUIRED"
+
+  AC_DEFINE([WITH_FRIBIDI],[1],[Define to 1 to enable BiDi support])
+fi
+
+AM_CONDITIONAL([WITH_FRIBIDI],[test "$with_fribidi" = "yes"])
 
 # GLIB tools
 
@@ -309,7 +327,7 @@ AC_CHECK_FUNCS([ceil floor round])
 
 # Search for the required modules.
 
-VTE_PKGS="glib-2.0 >= $GLIB_REQUIRED gobject-2.0 pango >= $PANGO_REQUIRED gtk+-$GTK_API_VERSION >= $GTK_REQUIRED gobject-2.0 gio-2.0 gio-unix-2.0 zlib libpcre2-8 >= $PCRE2_REQUIRED $GNUTLS_PKGS"
+VTE_PKGS="glib-2.0 >= $GLIB_REQUIRED gobject-2.0 pango >= $PANGO_REQUIRED gtk+-$GTK_API_VERSION >= $GTK_REQUIRED gobject-2.0 gio-2.0 gio-unix-2.0 zlib libpcre2-8 >= $PCRE2_REQUIRED $GNUTLS_PKGS $FRIBIDI_PKGS"
 PKG_CHECK_MODULES([VTE],[$VTE_PKGS])
 AC_SUBST([VTE_PKGS])
 
@@ -477,6 +495,7 @@ cat <<EOF | tee -a config.log
 
 Configuration for libvte $VERSION for gtk+-$GTK_API_VERSION
 	GnuTLS: $with_gnutls
+	BiDi: $with_fribidi
 	IConv: $with_iconv
 	Installing Glade catalogue: $enable_glade_catalogue
 	Debugging: $enable_debug

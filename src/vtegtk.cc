@@ -1701,6 +1701,12 @@ vte_get_features (void)
 #else
                 "-GNUTLS"
 #endif
+                " "
+#ifdef WITH_FRIBIDI
+                "+BIDI"
+#else
+                "-BIDI"
+#endif
                 ;
 }
 
