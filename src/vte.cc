@@ -2774,7 +2774,7 @@ Terminal::insert_char(gunichar c,
                                 bool invalidate_now)
 {
 	VteCellAttr attr;
-	VteRowData *row;
+	VteRowData *row, *row2;
 	long col;
 	int columns, i;
 	bool line_wrapped = false; /* cursor moved before char inserted */
@@ -2844,6 +2844,11 @@ Terminal::insert_char(gunichar c,
 			row = ensure_row();
 			row->attr.soft_wrapped = 1;
                         cursor_down(false);
+
+                        row2 = ensure_row();
+                        row2->attr.bidi_implicit = row->attr.bidi_implicit;
+                        row2->attr.bidi_rtl      = row->attr.bidi_rtl;
+                        row2->attr.bidi_auto     = row->attr.bidi_auto;
 		} else {
 			/* Don't wrap, stay at the rightmost column. */
                         col = m_screen->cursor.col =
@@ -2983,6 +2988,47 @@ not_inserted:
 			(long)m_screen->insert_delta);
 
         m_line_wrapped = line_wrapped;
+}
+
+/* Apply the BiDi parameters on the current paragraph if the cursor
+ * is at the first position of this paragraph. */
+void
+Terminal::maybe_apply_bidi_attributes()
+{
+        _vte_debug_print(VTE_DEBUG_BIDI,
+                         "Maybe applying BiDi parameters on current paragraph.\n");
+
+        if (m_screen->cursor.col != 0) {
+                _vte_debug_print(VTE_DEBUG_BIDI,
+                                 "No, cursor not in first column.\n");
+                return;
+        }
+
+        auto row = m_screen->cursor.row;
+
+        if (row > 0) {
+                const VteRowData *rowdata = _vte_ring_index (m_screen->row_data, row - 1);
+                if (rowdata != nullptr && rowdata->attr.soft_wrapped) {
+                        _vte_debug_print(VTE_DEBUG_BIDI,
+                                         "No, not after a hard wrap.\n");
+                        return;
+                }
+        }
+
+        _vte_debug_print(VTE_DEBUG_BIDI,
+                         "Yes, applying.\n");
+
+        while (TRUE) {
+                VteRowData *rowdata = _vte_ring_index_writable (m_screen->row_data, row);
+                if (rowdata == nullptr)
+                        return;
+                rowdata->attr.bidi_implicit = m_modes_ecma.BDSM();
+                rowdata->attr.bidi_rtl = m_bidi_rtl;
+                rowdata->attr.bidi_auto = m_bidi_auto;
+                if (!rowdata->attr.soft_wrapped)
+                        return;
+                row++;
+        }
 }
 
 static void
@@ -8783,6 +8829,11 @@ Terminal::draw_cells_with_attributes(struct _vte_draw_text_request *items,
 }
 
 
+/* XXX tmp hack */
+#define _vte_row_data_get_bidi(row_data_p, col) \
+    (_vte_row_data_get ((row_data_p), ((row_data_p)->attr.bidi_rtl ? (m_column_count - 1 - (col)) : (col))))
+
+
 /* Paint the contents of a given row at the given location.  Take advantage
  * of multiple-draw APIs by finding runs of characters with identical
  * attributes and bundling them together. */
@@ -8824,14 +8875,14 @@ Terminal::draw_rows(VteScreen *screen_,
                  * Locate runs of identical bg colors within a row, and paint each run as a single rectangle. */
                 do {
                         /* Get the first cell's contents. */
-                        cell = row_data ? _vte_row_data_get (row_data, i) : nullptr;
+                        cell = row_data ? _vte_row_data_get_bidi (row_data, i) : nullptr;
                         /* Find the colors for this cell. */
                         selected = cell_is_selected(i, row);
                         determine_colors(cell, selected, &fore, &back, &deco);
 
                         while (++j < column_count) {
                                 /* Retrieve the next cell. */
-                                cell = row_data ? _vte_row_data_get (row_data, j) : nullptr;
+                                cell = row_data ? _vte_row_data_get_bidi (row_data, j) : nullptr;
                                 /* Resolve attributes to colors where possible and
                                  * compare visual attributes to the first character
                                  * in this chunk. */
@@ -8871,7 +8922,7 @@ Terminal::draw_rows(VteScreen *screen_,
                 item_count = 0;
                 for (col = 0; col < column_count; ) {
                         /* Get the character cell's contents. */
-                        cell = _vte_row_data_get (row_data, col);
+                        cell = _vte_row_data_get_bidi (row_data, col);
                         if (cell == NULL) {
                                 /* There'll be no more real cells in this row. */
                                 break;
@@ -9972,6 +10023,7 @@ Terminal::reset(bool clear_tabstops,
         save_cursor(&m_alternate_screen);
         /* BiDi */
         m_bidi_rtl = FALSE;
+        m_bidi_auto = FALSE;
 	/* Cause everything to be redrawn (or cleared). */
 	invalidate_all();
 

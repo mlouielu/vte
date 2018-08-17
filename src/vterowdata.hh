@@ -36,7 +36,10 @@ G_BEGIN_DECLS
  */
 
 typedef struct _VteRowAttr {
-	guint8 soft_wrapped: 1;
+        guint8 soft_wrapped  : 1;
+        guint8 bidi_implicit : 1;
+        guint8 bidi_rtl      : 1;
+        guint8 bidi_auto     : 1;
 } VteRowAttr;
 static_assert(sizeof (VteRowAttr) == 1, "VteRowAttr has wrong size");
 

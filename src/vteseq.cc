@@ -461,7 +461,7 @@ Terminal::set_mode_ecma(vte::parser::Sequence const& seq,
                         _vte_debug_print(VTE_DEBUG_BIDI,
                                          "BiDi %s mode\n",
                                          set ? "implicit" : "explicit");
-                        /* Will need to take immediate action too */
+                        maybe_apply_bidi_attributes();  // FIXME only apply the one that changed here?
                 }
         }
 }
@@ -1017,6 +1017,7 @@ Terminal::line_feed()
 {
         ensure_cursor_is_onscreen();
         cursor_down(true);
+        maybe_apply_bidi_attributes();
 }
 
 void
@@ -7383,6 +7384,8 @@ Terminal::SPD(vte::parser::Sequence const& seq)
                 _vte_debug_print(VTE_DEBUG_BIDI, "BiDi: default direction restored\n");
                 break;
         }
+
+        maybe_apply_bidi_attributes();  // FIXME only apply the one that changed here?
 }
 
 void

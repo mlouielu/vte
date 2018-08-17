@@ -593,7 +593,8 @@ public:
         long m_hyperlink_auto_id;
 
         /* BiDi */
-        gboolean m_bidi_rtl : 1;
+        guint m_bidi_rtl  : 1;
+        guint m_bidi_auto : 1;
 
 public:
 
@@ -642,6 +643,8 @@ public:
         void invalidate_symmetrical_difference(vte::grid::span const& a, vte::grid::span const& b, bool block);
         void invalidate_match_span();
         void invalidate_all();
+
+        void maybe_apply_bidi_attributes();
 
         void reset_update_rects();
         bool invalidate_dirty_rects_and_process_updates();
