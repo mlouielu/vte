@@ -607,6 +607,9 @@ public:
         inline VteRowData* find_row_data_writable(vte::grid::row_t row) const;
         inline VteCell const* find_charcell(vte::grid::column_t col,
                                             vte::grid::row_t row) const;
+        inline VteCell const* find_charcell_bidi(vte::grid::column_t col,
+                                            vte::grid::row_t row,
+                                            gboolean *rtl) const;
         inline vte::grid::column_t find_start_column(vte::grid::column_t col,
                                                      vte::grid::row_t row) const;
         inline vte::grid::column_t find_end_column(vte::grid::column_t col,

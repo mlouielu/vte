@@ -415,6 +415,22 @@ Terminal::find_charcell(vte::grid::column_t col,
 	return ret;
 }
 
+VteCell const*
+Terminal::find_charcell_bidi(vte::grid::column_t col,
+                                  vte::grid::row_t row,
+                                  gboolean *rtl) const
+{
+	VteRowData const* rowdata;
+	VteCell const* ret = nullptr;
+
+	if (_vte_ring_contains(m_screen->row_data, row)) {
+		rowdata = _vte_ring_index(m_screen->row_data, row);
+		ret = _vte_row_data_get (rowdata, col);
+		*rtl = rowdata->attr.bidi_rtl;
+	}
+	return ret;
+}
+
 // FIXMEchpe replace this with a method on VteRing
 vte::grid::column_t
 Terminal::find_start_column(vte::grid::column_t col,
@@ -9134,7 +9150,8 @@ Terminal::paint_cursor()
 
         /* Find the first cell of the character "under" the cursor.
          * This is for CJK.  For TAB, paint the cursor where it really is. */
-	auto cell = find_charcell(col, drow);
+        gboolean rtl;
+	auto cell = find_charcell_bidi(col, drow, &rtl);
         while (cell != NULL && cell->attr.fragment() && cell->c != '\t' && col > 0) {
 		col--;
 		cell = find_charcell(col, drow);
@@ -9143,7 +9160,7 @@ Terminal::paint_cursor()
 	/* Draw the cursor. */
 	item.c = (cell && cell->c) ? cell->c : ' ';
 	item.columns = item.c == '\t' ? 1 : cell ? cell->attr.columns() : 1;
-	item.x = col * width;
+	item.x = (rtl ? m_column_count - 1 - col : col) * width;
 	item.y = row_to_pixel(drow);
 	if (cell && cell->c != 0) {
 		style = _vte_draw_get_style(cell->attr.bold(), cell->attr.italic());
