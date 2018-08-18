@@ -8924,8 +8924,9 @@ Terminal::draw_rows(VteScreen *screen_,
                         /* Get the character cell's contents. */
                         cell = _vte_row_data_get_bidi (row_data, col);
                         if (cell == NULL) {
-                                /* There'll be no more real cells in this row. */
-                                break;
+                                /* We're rendering BiDi text in visual order, so an unused cell can be followed by a used one. */
+                                col++;
+                                continue;
                         }
 
                         nhyperlink = (m_allow_hyperlink && cell->attr.hyperlink_idx != 0);
