@@ -401,24 +401,11 @@ Terminal::find_row_data_writable(vte::grid::row_t row) const
  * Note that calling this method may invalidate the return value of
  * a previous find_row_data() call. */
 // FIXMEchpe replace this with a method on VteRing
+// FIXME do we do overloading? and default parameter?
 VteCell const*
 Terminal::find_charcell(vte::grid::column_t col,
-                                  vte::grid::row_t row) const
-{
-	VteRowData const* rowdata;
-	VteCell const* ret = nullptr;
-
-	if (_vte_ring_contains(m_screen->row_data, row)) {
-		rowdata = _vte_ring_index(m_screen->row_data, row);
-		ret = _vte_row_data_get (rowdata, col);
-	}
-	return ret;
-}
-
-VteCell const*
-Terminal::find_charcell_bidi(vte::grid::column_t col,
                                   vte::grid::row_t row,
-                                  guint8 *bidi_flags) const
+                                  guint8 *bidi_flags = nullptr) const
 {
 	VteRowData const* rowdata;
 	VteCell const* ret = nullptr;
@@ -426,7 +413,8 @@ Terminal::find_charcell_bidi(vte::grid::column_t col,
 	if (_vte_ring_contains(m_screen->row_data, row)) {
 		rowdata = _vte_ring_index(m_screen->row_data, row);
 		ret = _vte_row_data_get (rowdata, col);
-		*bidi_flags = rowdata->attr.bidi_flags;
+                if (bidi_flags != nullptr)
+                        *bidi_flags = rowdata->attr.bidi_flags;
 	}
 	return ret;
 }
@@ -8852,7 +8840,7 @@ Terminal::draw_cells_with_attributes(struct _vte_draw_text_request *items,
 
 
 /* XXX tmp hack */
-#define _vte_row_data_get_bidi(row_data_p, col) \
+#define _vte_row_data_get_visual(row_data_p, col) \
     (_vte_row_data_get ((row_data_p), (((row_data_p)->attr.bidi_flags & VTE_BIDI_RTL) ? (m_column_count - 1 - (col)) : (col))))
 
 
@@ -8897,14 +8885,14 @@ Terminal::draw_rows(VteScreen *screen_,
                  * Locate runs of identical bg colors within a row, and paint each run as a single rectangle. */
                 do {
                         /* Get the first cell's contents. */
-                        cell = row_data ? _vte_row_data_get_bidi (row_data, i) : nullptr;
+                        cell = row_data ? _vte_row_data_get_visual (row_data, i) : nullptr;
                         /* Find the colors for this cell. */
                         selected = cell_is_selected(i, row);
                         determine_colors(cell, selected, &fore, &back, &deco);
 
                         while (++j < column_count) {
                                 /* Retrieve the next cell. */
-                                cell = row_data ? _vte_row_data_get_bidi (row_data, j) : nullptr;
+                                cell = row_data ? _vte_row_data_get_visual (row_data, j) : nullptr;
                                 /* Resolve attributes to colors where possible and
                                  * compare visual attributes to the first character
                                  * in this chunk. */
@@ -8944,7 +8932,7 @@ Terminal::draw_rows(VteScreen *screen_,
                 item_count = 0;
                 for (col = 0; col < column_count; ) {
                         /* Get the character cell's contents. */
-                        cell = _vte_row_data_get_bidi (row_data, col);
+                        cell = _vte_row_data_get_visual (row_data, col);
                         if (cell == NULL) {
                                 /* We're rendering BiDi text in visual order, so an unused cell can be followed by a used one. */
                                 col++;
@@ -9159,7 +9147,7 @@ Terminal::paint_cursor()
         /* Find the first cell of the character "under" the cursor.
          * This is for CJK.  For TAB, paint the cursor where it really is. */
         guint8 bidi_flags = 0;
-	auto cell = find_charcell_bidi(col, drow, &bidi_flags);
+	auto cell = find_charcell(col, drow, &bidi_flags);
         while (cell != NULL && cell->attr.fragment() && cell->c != '\t' && col > 0) {
 		col--;
 		cell = find_charcell(col, drow);
