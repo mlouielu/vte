@@ -1185,6 +1185,7 @@ Ring::rewrap(column_t columns,
 		/* Find the boundaries of the next paragraph */
 		gboolean prev_record_was_soft_wrapped = FALSE;
 		gboolean paragraph_is_ascii = TRUE;
+		guint8 paragraph_bidi_flags = old_record.bidi_flags;
 		gsize paragraph_start_row = old_row_index - 1;
 		gsize paragraph_end_row;  /* points to beyond the end */
 		gsize text_offset = paragraph_start_text_offset;
@@ -1232,6 +1233,7 @@ Ring::rewrap(column_t columns,
 		new_record.text_start_offset = text_offset;
 		new_record.attr_start_offset = attr_offset;
 		new_record.is_ascii = paragraph_is_ascii;
+		new_record.bidi_flags = paragraph_bidi_flags;
 
 		while (paragraph_len > 0) {
 			/* Wrap one continuous run of identical attributes within the paragraph. */
