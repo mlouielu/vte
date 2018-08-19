@@ -4730,7 +4730,7 @@ Terminal::DECSTBM(vte::parser::Sequence const& seq)
 	} else {
 		/* Maybe extend the ring -- bug 710483 */
                 while (_vte_ring_next(m_screen->row_data) < m_screen->insert_delta + m_row_count)
-                        _vte_ring_insert(m_screen->row_data, _vte_ring_next(m_screen->row_data));
+                        _vte_ring_insert(m_screen->row_data, _vte_ring_next(m_screen->row_data), get_bidi_flags());
 	}
 
         home_cursor();

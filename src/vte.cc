@@ -139,11 +139,11 @@ Terminal::ring_insert(vte::grid::row_t position,
         bool const not_default_bg = (m_fill_defaults.attr.back() != VTE_DEFAULT_BG);
 
 	while (G_UNLIKELY (_vte_ring_next (ring) < position)) {
-		row = _vte_ring_append (ring);
+		row = _vte_ring_append (ring, get_bidi_flags());
                 if (not_default_bg)
                         _vte_row_data_fill (row, &m_fill_defaults, m_column_count);
 	}
-	row = _vte_ring_insert (ring, position);
+	row = _vte_ring_insert (ring, position, get_bidi_flags());
         if (fill && not_default_bg)
                 _vte_row_data_fill (row, &m_fill_defaults, m_column_count);
 	return row;
@@ -426,7 +426,7 @@ Terminal::find_charcell_bidi(vte::grid::column_t col,
 	if (_vte_ring_contains(m_screen->row_data, row)) {
 		rowdata = _vte_ring_index(m_screen->row_data, row);
 		ret = _vte_row_data_get (rowdata, col);
-		*rtl = rowdata->attr.bidi_rtl;
+		*rtl = rowdata->attr.bidi_flags & VTE_BIDI_RTL;
 	}
 	return ret;
 }
@@ -2862,9 +2862,7 @@ Terminal::insert_char(gunichar c,
                         cursor_down(false);
 
                         row2 = ensure_row();
-                        row2->attr.bidi_implicit = row->attr.bidi_implicit;
-                        row2->attr.bidi_rtl      = row->attr.bidi_rtl;
-                        row2->attr.bidi_auto     = row->attr.bidi_auto;
+                        row2->attr.bidi_flags = row->attr.bidi_flags;
 		} else {
 			/* Don't wrap, stay at the rightmost column. */
                         col = m_screen->cursor.col =
@@ -3006,6 +3004,14 @@ not_inserted:
         m_line_wrapped = line_wrapped;
 }
 
+guint8
+Terminal::get_bidi_flags()
+{
+        return (m_modes_ecma.BDSM() ? VTE_BIDI_IMPLICIT : 0) |
+               (m_bidi_rtl ? VTE_BIDI_RTL : 0) |
+               (m_bidi_auto ? VTE_BIDI_AUTO : 0);
+}
+
 /* Apply the BiDi parameters on the current paragraph if the cursor
  * is at the first position of this paragraph. */
 void
@@ -3038,9 +3044,7 @@ Terminal::maybe_apply_bidi_attributes()
                 VteRowData *rowdata = _vte_ring_index_writable (m_screen->row_data, row);
                 if (rowdata == nullptr)
                         return;
-                rowdata->attr.bidi_implicit = m_modes_ecma.BDSM();
-                rowdata->attr.bidi_rtl = m_bidi_rtl;
-                rowdata->attr.bidi_auto = m_bidi_auto;
+                rowdata->attr.bidi_flags = get_bidi_flags();
                 if (!rowdata->attr.soft_wrapped)
                         return;
                 row++;
@@ -8847,7 +8851,7 @@ Terminal::draw_cells_with_attributes(struct _vte_draw_text_request *items,
 
 /* XXX tmp hack */
 #define _vte_row_data_get_bidi(row_data_p, col) \
-    (_vte_row_data_get ((row_data_p), ((row_data_p)->attr.bidi_rtl ? (m_column_count - 1 - (col)) : (col))))
+    (_vte_row_data_get ((row_data_p), (((row_data_p)->attr.bidi_flags & VTE_BIDI_RTL) ? (m_column_count - 1 - (col)) : (col))))
 
 
 /* Paint the contents of a given row at the given location.  Take advantage
@@ -9150,7 +9154,7 @@ Terminal::paint_cursor()
 
         /* Find the first cell of the character "under" the cursor.
          * This is for CJK.  For TAB, paint the cursor where it really is. */
-        gboolean rtl;
+        gboolean rtl = FALSE;
 	auto cell = find_charcell_bidi(col, drow, &rtl);
         while (cell != NULL && cell->attr.fragment() && cell->c != '\t' && col > 0) {
 		col--;

@@ -85,8 +85,8 @@ public:
         row_t reset();
         void resize(row_t max_rows = kDefaultMaxRows);
         void shrink(row_t max_len = kDefaultMaxRows);
-        VteRowData* insert(row_t position);
-        VteRowData* append();
+        VteRowData* insert(row_t position, guint8 bidi_flags);
+        VteRowData* append(guint8 bidi_flags);
         void remove(row_t position);
         void drop_scrollback(row_t position);
         void set_visible_rows(row_t rows);
@@ -248,8 +248,8 @@ static inline auto _vte_ring_get_hyperlink_at_position (VteRing *ring, gulong po
 static inline long _vte_ring_reset (VteRing *ring) { return ring->reset(); }
 static inline void _vte_ring_resize (VteRing *ring, gulong max_rows) { ring->resize(max_rows); }
 static inline void _vte_ring_shrink (VteRing *ring, gulong max_len) { ring->shrink(max_len); }
-static inline VteRowData *_vte_ring_insert (VteRing *ring, gulong position) { return ring->insert(position); }
-static inline VteRowData *_vte_ring_append (VteRing *ring) { return ring->append(); }
+static inline VteRowData *_vte_ring_insert (VteRing *ring, gulong position, guint8 bidi_flags) { return ring->insert(position, bidi_flags); }
+static inline VteRowData *_vte_ring_append (VteRing *ring, guint8 bidi_flags) { return ring->append(bidi_flags); }
 static inline void _vte_ring_remove (VteRing *ring, gulong position) { ring->remove(position); }
 static inline void _vte_ring_drop_scrollback (VteRing *ring, gulong position) { ring->drop_scrollback(position); }
 static inline void _vte_ring_set_visible_rows (VteRing *ring, gulong rows) { ring->set_visible_rows(rows); }

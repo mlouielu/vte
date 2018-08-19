@@ -844,7 +844,7 @@ Ring::shrink(row_t max_len)
  * Return: the newly added row.
  */
 VteRowData*
-Ring::insert(row_t position)
+Ring::insert(row_t position, guint8 bidi_flags)
 {
 	row_t i;
 	VteRowData* row, tmp;
@@ -866,6 +866,7 @@ Ring::insert(row_t position)
 	*get_writable_index(position) = tmp;
 
 	row = get_writable_index(position);
+	row->attr.bidi_flags = bidi_flags;
 	_vte_row_data_clear (row);
 	m_end++;
 
@@ -916,9 +917,9 @@ Ring::remove(row_t position)
  * Return: the newly added row.
  */
 VteRowData*
-Ring::append()
+Ring::append(guint8 bidi_flags)
 {
-	return insert(next());
+	return insert(next(), bidi_flags);
 }
 
 
