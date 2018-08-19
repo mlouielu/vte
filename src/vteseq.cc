@@ -595,6 +595,7 @@ Terminal::set_mode_private(int mode,
 
         case vte::terminal::modes::Private::eVTE_BOX_DRAWING_MIRROR:
                 maybe_apply_bidi_attributes();
+                break;
 
         default:
                 break;
