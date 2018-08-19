@@ -142,6 +142,17 @@ MODE(XTERM_READLINE_BRACKETED_PASTE, 2004)
 
 MODE(URXVT_MOUSE_EXT, 1015)
 
+/* VTE */
+
+/*
+ * Whether box drawing characters in the U+2500..U+257F range
+ * are to be mirrored in RTL context.
+ *
+ * The (temporary) choice of number 2500 is a misuse of hex 2500
+ * as a decimal number, but is supposed to be easily memorable.
+ */
+MODE(VTE_BOX_DRAWING_MIRROR, 2500)
+
 /* Not supported modes: */
 
 /* DEC */

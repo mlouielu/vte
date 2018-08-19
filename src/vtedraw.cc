@@ -993,7 +993,7 @@ _vte_draw_unichar_is_local_graphic(vteunistr c)
 /* Draw the graphic representation of a line-drawing or special graphics
  * character. */
 static void
-_vte_draw_terminal_draw_graphic(struct _vte_draw *draw, vteunistr c, vte::color::rgb const* fg,
+_vte_draw_terminal_draw_graphic(struct _vte_draw *draw, vteunistr c, gboolean mirror, vte::color::rgb const* fg,
                                 gint x, gint y,
                                 gint font_width, gint columns, gint font_height)
 {
@@ -1164,7 +1164,7 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw, vteunistr c, vte::color:
                 int xi, yi;
                 cairo_set_line_width(cr, 0);
                 for (yi = 4; yi >= 0; yi--) {
-                        for (xi = 4; xi >= 0; xi--) {
+                        for (xi = mirror ? 0 : 4; xi >= 0 && xi <= 4; mirror ? xi++ : xi--) {
                                 if (bitmap & 1) {
                                         cairo_rectangle(cr,
                                                         x + xboundaries[xi],
@@ -1242,7 +1242,7 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw, vteunistr c, vte::color:
         case 0x256f: /* box drawings light arc up and left */
         case 0x2570: /* box drawings light arc up and right */
         {
-                const guint v = c - 0x256d;
+                const guint v = (c - 0x256d) ^ (mirror ? 1 : 0);
                 int line_width;
                 int radius;
 
@@ -1292,12 +1292,12 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw, vteunistr c, vte::color:
                 cairo_set_line_cap(cr, CAIRO_LINE_CAP_ROUND);
                 cairo_set_line_width(cr, light_line_width);
                 adjust = light_line_width / 2.;
-                if (c != 0x2571) {
+                if (c != (mirror ? 0x2572 : 0x2571)) {
                         cairo_move_to(cr, x + adjust, y + adjust);
                         cairo_line_to(cr, xright - adjust, ybottom - adjust);
                         cairo_stroke(cr);
                 }
-                if (c != 0x2572) {
+                if (c != (mirror ? 0x2571 : 0x2572)) {
                         cairo_move_to(cr, xright - adjust, y + adjust);
                         cairo_line_to(cr, x + adjust, ybottom - adjust);
                         cairo_stroke(cr);
@@ -1480,7 +1480,7 @@ _vte_draw_text_internal (struct _vte_draw *draw,
                 y = requests[i].y + draw->char_spacing.top + font->ascent;
 
                 if (_vte_draw_unichar_is_local_graphic(c)) {
-                        _vte_draw_terminal_draw_graphic(draw, c, color,
+                        _vte_draw_terminal_draw_graphic(draw, c, requests[i].mirror, color,
                                                         requests[i].x, requests[i].y,
                                                         font->width, requests[i].columns, font->height);
                         continue;

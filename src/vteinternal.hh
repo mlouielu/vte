@@ -87,9 +87,10 @@ enum {
 };
 
 enum {
-        VTE_BIDI_IMPLICIT = 1 << 0,
-        VTE_BIDI_RTL      = 1 << 1,
-        VTE_BIDI_AUTO     = 1 << 2,
+        VTE_BIDI_IMPLICIT   = 1 << 0,
+        VTE_BIDI_RTL        = 1 << 1,
+        VTE_BIDI_AUTO       = 1 << 2,
+        VTE_BIDI_BOX_MIRROR = 1 << 3,
 };
 
 struct vte_regex_and_flags {
@@ -598,7 +599,7 @@ public:
         const char *m_hyperlink_hover_uri; /* data is owned by the ring */
         long m_hyperlink_auto_id;
 
-        /* BiDi */
+        /* BiDi parameters outside of ECMA and DEC private modes */
         guint m_bidi_rtl  : 1;
         guint m_bidi_auto : 1;
 
@@ -615,7 +616,7 @@ public:
                                             vte::grid::row_t row) const;
         inline VteCell const* find_charcell_bidi(vte::grid::column_t col,
                                             vte::grid::row_t row,
-                                            gboolean *rtl) const;
+                                            guint8 *bidi_flags) const;
         inline vte::grid::column_t find_start_column(vte::grid::column_t col,
                                                      vte::grid::row_t row) const;
         inline vte::grid::column_t find_end_column(vte::grid::column_t col,

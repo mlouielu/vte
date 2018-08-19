@@ -418,7 +418,7 @@ Terminal::find_charcell(vte::grid::column_t col,
 VteCell const*
 Terminal::find_charcell_bidi(vte::grid::column_t col,
                                   vte::grid::row_t row,
-                                  gboolean *rtl) const
+                                  guint8 *bidi_flags) const
 {
 	VteRowData const* rowdata;
 	VteCell const* ret = nullptr;
@@ -426,7 +426,7 @@ Terminal::find_charcell_bidi(vte::grid::column_t col,
 	if (_vte_ring_contains(m_screen->row_data, row)) {
 		rowdata = _vte_ring_index(m_screen->row_data, row);
 		ret = _vte_row_data_get (rowdata, col);
-		*rtl = rowdata->attr.bidi_flags & VTE_BIDI_RTL;
+		*bidi_flags = rowdata->attr.bidi_flags;
 	}
 	return ret;
 }
@@ -3009,7 +3009,8 @@ Terminal::get_bidi_flags()
 {
         return (m_modes_ecma.BDSM() ? VTE_BIDI_IMPLICIT : 0) |
                (m_bidi_rtl ? VTE_BIDI_RTL : 0) |
-               (m_bidi_auto ? VTE_BIDI_AUTO : 0);
+               (m_bidi_auto ? VTE_BIDI_AUTO : 0) |
+               (m_modes_private.VTE_BOX_DRAWING_MIRROR() ? VTE_BIDI_BOX_MIRROR : 0);
 }
 
 /* Apply the BiDi parameters on the current paragraph if the cursor
@@ -3045,7 +3046,7 @@ Terminal::maybe_apply_bidi_attributes()
                 if (rowdata == nullptr)
                         return;
                 rowdata->attr.bidi_flags = get_bidi_flags();
-                invalidate_cells(0, m_column_count, row, 1);
+                invalidate_row(row);
                 if (!rowdata->attr.soft_wrapped)
                         return;
                 row++;
@@ -9029,6 +9030,7 @@ Terminal::draw_rows(VteScreen *screen_,
                         items[item_count].columns = j - col;
                         items[item_count].x = col * column_width;
                         items[item_count].y = y;
+                        items[item_count].mirror = ((row_data->attr.bidi_flags & (VTE_BIDI_RTL | VTE_BIDI_BOX_MIRROR)) == (VTE_BIDI_RTL | VTE_BIDI_BOX_MIRROR));  // FIXME
                         item_count++;
 
                         g_assert_cmpint (j, >, col);
@@ -9155,8 +9157,8 @@ Terminal::paint_cursor()
 
         /* Find the first cell of the character "under" the cursor.
          * This is for CJK.  For TAB, paint the cursor where it really is. */
-        gboolean rtl = FALSE;
-	auto cell = find_charcell_bidi(col, drow, &rtl);
+        guint8 bidi_flags = 0;
+	auto cell = find_charcell_bidi(col, drow, &bidi_flags);
         while (cell != NULL && cell->attr.fragment() && cell->c != '\t' && col > 0) {
 		col--;
 		cell = find_charcell(col, drow);
@@ -9165,7 +9167,7 @@ Terminal::paint_cursor()
 	/* Draw the cursor. */
 	item.c = (cell && cell->c) ? cell->c : ' ';
 	item.columns = item.c == '\t' ? 1 : cell ? cell->attr.columns() : 1;
-	item.x = (rtl ? m_column_count - 1 - col : col) * width;
+	item.x = ((bidi_flags & VTE_BIDI_RTL) ? m_column_count - 1 - col : col) * width;
 	item.y = row_to_pixel(drow);
 	if (cell && cell->c != 0) {
 		style = _vte_draw_get_style(cell->attr.bold(), cell->attr.italic());
