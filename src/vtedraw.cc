@@ -1161,15 +1161,16 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw, vteunistr c, gboolean mi
                                        upper_half - light_line_width / 2 + light_line_width,
                                        upper_half - heavy_line_width / 2 + heavy_line_width,
                                        height};
-                int xi, yi;
+                int xi, xi_bidi, yi;
                 cairo_set_line_width(cr, 0);
                 for (yi = 4; yi >= 0; yi--) {
-                        for (xi = mirror ? 0 : 4; xi >= 0 && xi <= 4; mirror ? xi++ : xi--) {
+                        for (xi = 4; xi >= 0; xi--) {
                                 if (bitmap & 1) {
+                                        xi_bidi = mirror ? 4 - xi : xi;
                                         cairo_rectangle(cr,
-                                                        x + xboundaries[xi],
+                                                        x + xboundaries[xi_bidi],
                                                         y + yboundaries[yi],
-                                                        xboundaries[xi + 1] - xboundaries[xi],
+                                                        xboundaries[xi_bidi + 1] - xboundaries[xi_bidi],
                                                         yboundaries[yi + 1] - yboundaries[yi]);
                                         cairo_fill(cr);
                                 }
@@ -1471,6 +1472,12 @@ _vte_draw_text_internal (struct _vte_draw *draw,
 
 	for (i = 0; i < n_requests; i++) {
 		vteunistr c = requests[i].c;
+
+                if (G_UNLIKELY (requests[i].mirror)) {
+                        // FIXME what if 'c' is actually a real vteunistr?
+                        g_unichar_get_mirror_char (c, &c);
+                }
+
 		struct unistr_info *uinfo = font_info_get_unistr_info (font, c);
 		union unistr_font_info *ufi = &uinfo->ufi;
                 int x, y;
@@ -1480,7 +1487,7 @@ _vte_draw_text_internal (struct _vte_draw *draw,
                 y = requests[i].y + draw->char_spacing.top + font->ascent;
 
                 if (_vte_draw_unichar_is_local_graphic(c)) {
-                        _vte_draw_terminal_draw_graphic(draw, c, requests[i].mirror, color,
+                        _vte_draw_terminal_draw_graphic(draw, c, requests[i].mirror && requests[i].box_mirror, color,
                                                         requests[i].x, requests[i].y,
                                                         font->width, requests[i].columns, font->height);
                         continue;

@@ -9030,7 +9030,8 @@ Terminal::draw_rows(VteScreen *screen_,
                         items[item_count].columns = j - col;
                         items[item_count].x = col * column_width;
                         items[item_count].y = y;
-                        items[item_count].mirror = ((row_data->attr.bidi_flags & (VTE_BIDI_RTL | VTE_BIDI_BOX_MIRROR)) == (VTE_BIDI_RTL | VTE_BIDI_BOX_MIRROR));  // FIXME
+                        items[item_count].mirror = !!(row_data->attr.bidi_flags & VTE_BIDI_RTL);  // FIXME
+                        items[item_count].box_mirror = !!(row_data->attr.bidi_flags & VTE_BIDI_BOX_MIRROR);
                         item_count++;
 
                         g_assert_cmpint (j, >, col);
