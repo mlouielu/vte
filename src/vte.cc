@@ -3045,6 +3045,7 @@ Terminal::maybe_apply_bidi_attributes()
                 if (rowdata == nullptr)
                         return;
                 rowdata->attr.bidi_flags = get_bidi_flags();
+                invalidate_cells(0, m_column_count, row, 1);
                 if (!rowdata->attr.soft_wrapped)
                         return;
                 row++;

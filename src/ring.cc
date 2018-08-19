@@ -373,6 +373,7 @@ Ring::freeze_row(row_t position,
 	if (!row->attr.soft_wrapped)
 		g_string_append_c (buffer, '\n');
 	record.soft_wrapped = row->attr.soft_wrapped;
+	record.bidi_flags = row->attr.bidi_flags;
 
 	_vte_stream_append(m_text_stream, buffer->str, buffer->len);
 	append_row_record(&record, position);
@@ -435,6 +436,7 @@ Ring::thaw_row(row_t position,
                 g_string_truncate (buffer, buffer->len - 1);
 	else
 		row->attr.soft_wrapped = TRUE;
+	row->attr.bidi_flags = records[0].bidi_flags;
 
 	p = buffer->str;
 	end = p + buffer->len;
