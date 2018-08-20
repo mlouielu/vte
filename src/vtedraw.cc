@@ -26,6 +26,10 @@
 #include <glib.h>
 #include <gtk/gtk.h>
 
+#ifdef WITH_FRIBIDI
+#include <fribidi.h>
+#endif
+
 #include "vtedraw.hh"
 #include "vtedefines.hh"
 #include "debug.h"
@@ -1475,7 +1479,15 @@ _vte_draw_text_internal (struct _vte_draw *draw,
 
                 if (G_UNLIKELY (requests[i].mirror)) {
                         // FIXME what if 'c' is actually a real vteunistr?
+#ifdef WITH_FRIBIDI
+                        /* Prefer the FriBidi variant as that's more likely
+                         * to be in sync with the rest of our BiDi stuff. */
+                        fribidi_get_mirror_char (c, &c);
+#else
+                        /* Fall back to glib, so that we still get mirrored
+                         * characters in explicit RTL mode. */
                         g_unichar_get_mirror_char (c, &c);
+#endif
                 }
 
 		struct unistr_info *uinfo = font_info_get_unistr_info (font, c);
