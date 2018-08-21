@@ -601,7 +601,6 @@ public:
 
         /* BiDi parameters outside of ECMA and DEC private modes */
         guint m_bidi_rtl  : 1;
-        guint m_bidi_auto : 1;
 
 public:
 

@@ -153,6 +153,13 @@ MODE(URXVT_MOUSE_EXT, 1015)
  */
 MODE(VTE_BOX_DRAWING_MIRROR, 2500)
 
+/*
+ * Whether BiDi paragraph direction is autodetected.
+ *
+ * The number choice is temporary.
+ */
+MODE(VTE_BIDI_AUTO, 2501)
+
 /* Not supported modes: */
 
 /* DEC */

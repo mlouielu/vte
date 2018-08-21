@@ -594,7 +594,17 @@ Terminal::set_mode_private(int mode,
                 break;
 
         case vte::terminal::modes::Private::eVTE_BOX_DRAWING_MIRROR:
-                maybe_apply_bidi_attributes();
+                _vte_debug_print(VTE_DEBUG_BIDI,
+                                 "BiDi box drawing mirroring %s\n",
+                                 set ? "enabled" : "disabled");
+                maybe_apply_bidi_attributes();  // FIXME only apply the one that changed here?
+                break;
+
+        case vte::terminal::modes::Private::eVTE_BIDI_AUTO:
+                        _vte_debug_print(VTE_DEBUG_BIDI,
+                                         "BiDi dir autodetection %s\n",
+                                         set ? "enabled" : "disabled");
+                maybe_apply_bidi_attributes();  // FIXME only apply the one that changed here?
                 break;
 
         default:
