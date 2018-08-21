@@ -39,11 +39,11 @@ static void bidi_shuffle_explicit (int width, gboolean rtl)
         if (rtl) {
                 for (i = 0; i < width; i++) {
                         L_to_V[i] = V_to_L[i] = width - 1 - i;
-                }		
+                }
         } else {
                 for (i = 0; i < width; i++) {
                         L_to_V[i] = V_to_L[i] = i;
-                }		
+                }
         }
 }
 
@@ -68,7 +68,7 @@ void bidi_shuffle (const VteRowData *rowdata, int width)
                 str[i] = _vte_unistr_get_base(rowdata->cells[i].c);
         }
 
-        pbase_dir = (rowdata->attr.bidi_flags & VTE_BIDI_AUTO) 
+        pbase_dir = (rowdata->attr.bidi_flags & VTE_BIDI_AUTO)
                     ? FRIBIDI_PAR_ON
                     : (rowdata->attr.bidi_flags & VTE_BIDI_RTL) ? FRIBIDI_PAR_RTL : FRIBIDI_PAR_LTR;
 
