@@ -8874,7 +8874,7 @@ Terminal::draw_rows(VteScreen *screen_,
 
         // FIXME find a nicer place for these
         m_ringview.set_ring (m_screen->row_data);
-        m_ringview.set_rows ((long) m_screen->scroll_delta, m_row_count + 2);
+        m_ringview.set_rows ((long) m_screen->scroll_delta, m_row_count + 3);
         m_ringview.set_width (m_column_count);
         m_ringview.update ();
 
@@ -9159,7 +9159,7 @@ Terminal::paint_cursor()
 
         // FIXME find a nicer place for these
         m_ringview.set_ring (m_screen->row_data);
-        m_ringview.set_rows ((long) m_screen->scroll_delta, m_row_count + 2);
+        m_ringview.set_rows ((long) m_screen->scroll_delta, m_row_count + 3);
         m_ringview.set_width (m_column_count);
         m_ringview.update ();
 
