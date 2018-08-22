@@ -26,7 +26,7 @@
 struct _bidicellmap {
         int log2vis;
         int vis2log;
-        guint8 rtl: 1;
+        guint8 vis_rtl: 1;
 };
 
 typedef struct _bidicellmap bidicellmap;
@@ -59,6 +59,10 @@ private:
 
         long m_height_alloc;
         long m_width_alloc;
+
+        void explicit_line(long row, gboolean rtl);
+        long explicit_paragraph(long row, gboolean rtl);
+        long paragraph(long row);
 };
 
 
@@ -67,17 +71,5 @@ private:
 }; /* namespace vte */
 
 G_BEGIN_DECLS
-
-void bidi_shuffle (const VteRowData *rowdata, int width);
-int log2vis (int log);
-int vis2log (int vis);
-
-struct _bidimap {
-        vte::base::Ring *ring;
-};
-
-typedef struct _bidimap bidimap;
-
-
 
 G_END_DECLS

@@ -24,7 +24,20 @@
 
 #include "bidi.hh"
 #include "debug.h"
+#include "vtedefines.hh"
 #include "vteinternal.hh"
+
+
+
+#ifdef WITH_FRIBIDI
+FriBidiChar fribidi_chars[100000];
+FriBidiCharType fribidi_chartypes[100000];
+FriBidiBracketType fribidi_brackettypes[100000];
+FriBidiLevel fribidi_levels[100000];
+FriBidiStrIndex fribidi_map[100000];
+#endif
+
+
 
 using namespace vte::base;
 
@@ -47,7 +60,7 @@ RingView::~RingView()
 {
         for (int i = 0; i < m_height_alloc; i++)
                 g_free (m_bidimaps[i]);
-	g_free (m_bidimaps);
+        g_free (m_bidimaps);
         /* ... */
 }
 
@@ -89,109 +102,277 @@ void RingView::set_rows(long s, long l)
 
 void RingView::update()
 {
-        for (int i = 0; i < m_len; i++) {
-                for (int j = 0; j < m_width; j++) {
-                        m_bidimaps[i][j].log2vis = j;
-                        m_bidimaps[i][j].vis2log = j;
-                        m_bidimaps[i][j].rtl = 0;
-                }
+        long i = m_start;
+        while (i < m_start + m_len) {
+                i = paragraph (i);
         }
 }
 
 bidicellmap *RingView::get_row_map(long row)
 {
-        g_assert (row >= m_start && row < m_start + m_len);
+        g_assert_cmpint (row, >=, m_start);
+        g_assert_cmpint (row, <, m_start + m_len);
         return m_bidimaps[row - m_start];
 }
 
+/* Set up the mapping according to explicit mode for a given line. */
+void RingView::explicit_line(long row, gboolean rtl)
+{
+        int i;
+        bidicellmap *map;
+
+        if (G_UNLIKELY (row < m_start || row >= m_start + m_len))
+                return;
+
+        map = m_bidimaps[row - m_start];
+
+        if (G_UNLIKELY (rtl)) {
+                for (i = 0; i < m_width; i++) {
+                        map[i].log2vis = map[i].vis2log = m_width - 1 - i;
+                        map[i].vis_rtl = TRUE;
+                }
+        } else {
+                for (i = 0; i < m_width; i++) {
+                        map[i].log2vis = map[i].vis2log = i;
+                        map[i].vis_rtl = FALSE;
+                }
+        }
+}
+
+/* Set up the mapping according to explicit mode, for all the lines
+ * of a paragraph beginning at the given line.
+ * Returns the row number after the paragraph or viewport (whichever ends first). */
+long RingView::explicit_paragraph(long row, gboolean rtl)
+{
+        const VteRowData *row_data;
+
+        while (row < m_start + m_len) {
+                explicit_line(row, rtl);
+
+                row_data = m_ring->index(row++);
+                if (row_data == nullptr || !row_data->attr.soft_wrapped)
+                        break;
+        }
+        return row;
+}
+
+/* Figure out the mapping for the paragraph starting at the given row.
+ * Returns the row number after the paragraph or viewport (whichever ends first). */
+long RingView::paragraph(long row)
+{
+        const VteRowData *row_data;
+
 #ifdef WITH_FRIBIDI
-
-FriBidiChar str[1000];
-FriBidiStrIndex L_to_V[1000];
-FriBidiStrIndex V_to_L[1000];
-
-static void bidi_shuffle_explicit (int width, gboolean rtl)
-{
-        int i;
-
-        if (rtl) {
-                for (i = 0; i < width; i++) {
-                        L_to_V[i] = V_to_L[i] = width - 1 - i;
-                }
-        } else {
-                for (i = 0; i < width; i++) {
-                        L_to_V[i] = V_to_L[i] = i;
-                }
-        }
-}
-
-void bidi_shuffle (const VteRowData *rowdata, int width)
-{
-        int i;
+        const VteCell *cell;
+        gboolean rtl;
+        gboolean autodir;
         FriBidiParType pbase_dir;
-
-        if (rowdata == NULL) {  // FIXME make sure it doesn't happen
-                bidi_shuffle_explicit (width, FALSE);
-                return;
-        }
-
-        if (!(rowdata->attr.bidi_flags & VTE_BIDI_IMPLICIT)) {
-                bidi_shuffle_explicit (width, rowdata->attr.bidi_flags & VTE_BIDI_RTL);
-                return;
-        }
-
-        for (i = 0; i < rowdata->len && i < width; i++) {
-                if (rowdata->cells[i].c == 0) break;
-                // FIXME is it okay to run the BiDi algorithm without the combining accents?
-                str[i] = _vte_unistr_get_base(rowdata->cells[i].c);
-        }
-
-        pbase_dir = (rowdata->attr.bidi_flags & VTE_BIDI_AUTO)
-                    ? FRIBIDI_PAR_ON
-                    : (rowdata->attr.bidi_flags & VTE_BIDI_RTL) ? FRIBIDI_PAR_RTL : FRIBIDI_PAR_LTR;
-
-        fribidi_log2vis (str, i, &pbase_dir, NULL, L_to_V, V_to_L, NULL);
-
-        if (pbase_dir == FRIBIDI_PAR_ON) {
-                pbase_dir = (rowdata->attr.bidi_flags & VTE_BIDI_RTL) ? FRIBIDI_PAR_RTL : FRIBIDI_PAR_LTR;
-        }
-
-        if (pbase_dir == FRIBIDI_PAR_RTL || pbase_dir == FRIBIDI_PAR_WRTL) {
-                if (i < width) {
-                        /* shift to the right */
-                        int shift = width - i;
-                        for (i--; i >= 0; i--) {
-                                L_to_V[i] += shift;
-                                V_to_L[i + shift] = V_to_L[i];
-                        }
-                        for (i = 0; i < shift; i++) {
-                                L_to_V[width - 1 - i] = i;
-                                V_to_L[i] = width - 1 - i;
-                        }
-                }
-        } else {
-                for (; i < width; i++) {
-                        L_to_V[i] = V_to_L[i] = i;
-                }
-        }
-}
-
-#else /* WITH_FRIBIDI */
-
-void bidi_shuffle (const VteRowData *rowdata, int width) {
-        if (rowdata == NULL) {  // FIXME make sure it doesn't happen
-                bidi_shuffle_explicit (width, FALSE);
-        } else {
-                bidi_shuffle_explicit (width, rowdata->attr.bidi_flags & VTE_BIDI_RTL);
-        }
-}
-
+        FriBidiLevel level;
+        bidicellmap *map;
 #endif /* WITH_FRIBIDI */
 
-int log2vis (int log) {
-        return L_to_V[log];
-}
+        row_data = m_ring->index(row);
+        if (row_data == nullptr) {
+                return explicit_paragraph(row, FALSE);
+        }
 
-int vis2log (int vis) {
-        return V_to_L[vis];
+#ifndef WITH_FRIBIDI
+        return explicit_paragraph(row, !!(row_data->attr.bidi_flags & VTE_BIDI_RTL));
+#else
+
+        if (!(row_data->attr.bidi_flags & VTE_BIDI_IMPLICIT)) {
+                return explicit_paragraph(row, !!(row_data->attr.bidi_flags & VTE_BIDI_RTL));
+        }
+
+        rtl = !!(row_data->attr.bidi_flags & VTE_BIDI_RTL);
+        autodir = !!(row_data->attr.bidi_flags & VTE_BIDI_AUTO);
+
+        int lines[VTE_BIDI_PARAGRAPH_LENGTH_MAX + 1];
+        lines[0] = 0;
+        int line = 0;
+        int c = 0;
+        int row_orig = row;
+        int j = 0;
+        int k, l, v;
+        unsigned int col;
+
+        /* Extract the paragraph's contents, omitting unused and fragment cells. */
+        while (row < m_start + m_len) {
+                row_data = m_ring->index(row++);
+                if (row_data == nullptr)
+                        break;
+
+                if (line == VTE_BIDI_PARAGRAPH_LENGTH_MAX) {
+                        /* Overlong paragraph, bail out. */
+                        return explicit_paragraph (row_orig, rtl);
+                }
+
+                /* A row_data might be longer, in case rewrapping is disabled and the window was narrowed.
+                 * Truncate the logical data before applying BiDi. */
+                // FIXME what the heck to do if this truncation cuts a TAB or CJK in half???
+                for (j = 0; j < m_width && j < row_data->len; j++) {
+                        cell = _vte_row_data_get (row_data, j);
+                        if (cell->attr.fragment())
+                                continue;
+
+                        // FIXME is it okay to run the BiDi algorithm without the combining accents?
+                        // If we need to preserve them then we need to double check whether
+                        // fribidi_reorder_line() requires a FRIBIDI_FLAG_REORDER_NSM or not.
+                        fribidi_chars[c++] = _vte_unistr_get_base(cell->c);
+                }
+
+                lines[++line] = c;
+
+                if (!row_data->attr.soft_wrapped)
+                        break;
+        }
+
+        if (lines == 0) {
+                // huh?
+                return explicit_paragraph (row_orig, rtl);
+        }
+
+        /* Run the BiDi algorithm on the paragraph to get the embedding levels. */
+
+        // FIXME are the WLTR / WRTL paragraph directions what I think they are?
+        pbase_dir = autodir ? (rtl ? FRIBIDI_PAR_WRTL : FRIBIDI_PAR_WLTR)
+                            : (rtl ? FRIBIDI_PAR_RTL  : FRIBIDI_PAR_LTR );
+
+        fribidi_get_bidi_types (fribidi_chars, c, fribidi_chartypes);
+        fribidi_get_bracket_types (fribidi_chars, c, fribidi_chartypes, fribidi_brackettypes);
+        level = fribidi_get_par_embedding_levels_ex (fribidi_chartypes, fribidi_brackettypes, c, &pbase_dir, fribidi_levels);
+
+        if (level == 0) {
+                /* error */
+                return explicit_paragraph (row_orig, rtl);
+        }
+
+        /* For convenience, from now on this variable contains the resolved (i.e. possibly autodetected) value. */
+        rtl = (pbase_dir == FRIBIDI_PAR_RTL || pbase_dir == FRIBIDI_PAR_WRTL);
+
+        if (level == 1 || (rtl && level == 2)) {
+                /* Fast shortcut for LTR-only and RTL-only. */
+                return explicit_paragraph (row_orig, rtl);
+        }
+
+        /* Reshuffle line by line. */
+        row = row_orig;
+        line = 0;
+        while (row < m_start + m_len) {
+                if (G_UNLIKELY (row < m_start)) {
+                        row++;
+                        line++;
+                        continue;
+                }
+
+                map = m_bidimaps[row - m_start];
+
+                row_data = m_ring->index(row++);
+                if (row_data == nullptr)
+                        break;
+
+                /* fribidi_reorder_line() conveniently reorders arbitrary numbers we pass as the map.
+                 * Use the logical position to save us from headaches when encountering fragments . */
+                k = lines[line];
+                for (j = 0; j < m_width && j < row_data->len; j++) {
+                        cell = _vte_row_data_get (row_data, j);
+                        if (cell->attr.fragment())
+                                continue;
+
+                        fribidi_map[k++] = j;
+                }
+
+                g_assert_cmpint (k, ==, lines[line + 1]);
+
+                // FIXME is it okay to run the BiDi algorithm without the combining accents?
+                // If we need to preserve them then we need to double check whether
+                // fribidi_reorder_line() requires a FRIBIDI_FLAG_REORDER_NSM or not.
+                level = fribidi_reorder_line (FRIBIDI_FLAGS_DEFAULT,
+                                              fribidi_chartypes,
+                                              lines[line + 1] - lines[line],
+                                              lines[line],
+                                              pbase_dir,
+                                              fribidi_levels,
+                                              NULL,
+                                              fribidi_map);
+
+                if (level == 0) {
+                        /* error, what should we do? */
+                        explicit_line (row, rtl);
+                        goto cont;
+                }
+
+                // FIXME can we do LTR-only and RTL-only shortcuts, just like with fribidi_get_par_embedding_levels_ex() ?
+
+                /* Copy to our realm. Proceed in visual order.*/
+                v = 0;
+                if (rtl) {
+                        /* Unused cell on the left for RTL paragraphs */
+                        int unused = MAX(m_width - row_data->len, 0);
+                        for (; v < unused; v++) {
+                                map[v].vis2log = m_width - 1 - v;
+                                map[v].vis_rtl = TRUE;
+                        }
+                }
+                for (j = lines[line]; j < lines[line + 1]; j++) {
+                        /* Inflate fribidi's result by inserting fragments. */
+                        l = fribidi_map[j];
+                        cell = _vte_row_data_get (row_data, l);
+                        g_assert (!cell->attr.fragment());
+                        g_assert (cell->attr.columns() > 0);
+                        if (fribidi_levels[l] % 2 == 0) {
+                                /* LTR character directionality. */
+                                for (col = 0; col < cell->attr.columns(); col++) {
+                                        map[v].vis2log = l;
+                                        map[v].vis_rtl = FALSE;
+                                        v++;
+                                        l++;
+                                }
+                        } else {
+                                /* RTL character directionality. Map fragments in reverse order. */
+                                for (col = 0; col < cell->attr.columns(); col++) {
+                                        map[v + col].vis2log = l + cell->attr.columns() - 1 - col;
+                                        map[v + col].vis_rtl = TRUE;
+                                }
+                                v += cell->attr.columns();
+                                l += cell->attr.columns();
+                        }
+                }
+                if (!rtl) {
+                        /* Unused cell on the right for LTR paragraphs */
+                        g_assert_cmpint (v, ==, MIN (row_data->len, m_width));
+                        for (; v < m_width; v++) {
+                                map[v].vis2log = v;
+                                map[v].vis_rtl = FALSE;
+                        }
+                }
+                g_assert_cmpint (v, ==, m_width);
+
+                /* From vis2log create the log2vis mapping too */
+                if (_vte_debug_on (VTE_DEBUG_BIDI)) {
+                        for (l = 0; l < m_width; l++) {
+                                map[l].log2vis = -1;
+                        }
+                }
+
+                for (v = 0; v < m_width; v++) {
+                        map[map[v].vis2log].log2vis = v;
+                }
+
+                if (_vte_debug_on (VTE_DEBUG_BIDI)) {
+                        for (l = 0; l < m_width; l++) {
+                                g_assert_cmpint (map[l].log2vis, !=, -1);
+                        }
+                }
+
+cont:
+                line++;
+
+                if (!row_data->attr.soft_wrapped)
+                        break;
+        }
+
+        return row;
+
+#endif /* !WITH_FRIBIDI */
 }
