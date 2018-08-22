@@ -24,6 +24,7 @@
 #include "vtetypes.hh"
 #include "vtedraw.hh"
 #include "reaper.hh"
+#include "bidi.hh"
 #include "ring.hh"
 #include "buffer.h"
 #include "parser.hh"
@@ -601,6 +602,7 @@ public:
 
         /* BiDi parameters outside of ECMA and DEC private modes */
         guint m_bidi_rtl  : 1;
+        vte::base::RingView m_ringview;
 
 public:
 

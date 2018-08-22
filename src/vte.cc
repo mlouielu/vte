@@ -8837,8 +8837,8 @@ Terminal::draw_cells_with_attributes(struct _vte_draw_text_request *items,
 
 
 /* XXX tmp hack */
-#define _vte_row_data_get_visual(row_data_p, col) \
-        _vte_row_data_get(row_data_p, vis2log(col))
+#define _vte_row_data_get_visual(row_data_p, bidimap, col) \
+        _vte_row_data_get(row_data_p, bidimap[col].vis2log)
 
 
 /* Paint the contents of a given row at the given location.  Take advantage
@@ -8863,11 +8863,22 @@ Terminal::draw_rows(VteScreen *screen_,
 	guint item_count;
 	const VteCell *cell;
 	VteRowData const* row_data;
+	bidicellmap const* bidimap;
 
         auto const column_count = m_column_count;
         uint32_t const attr_mask = m_allow_bold ? ~0 : ~VTE_ATTR_BOLD_MASK;
 
         items = g_newa (struct _vte_draw_text_request, column_count);
+
+
+
+        // FIXME find a nicer place for these
+        m_ringview.set_ring (m_screen->row_data);
+        m_ringview.set_rows ((long) m_screen->scroll_delta, m_row_count + 2);
+        m_ringview.set_width (m_column_count);
+        m_ringview.update ();
+
+
 
         /* Paint the background.
          * Do it first for all the cells we're about to paint, before drawing the glyphs,
@@ -8877,20 +8888,20 @@ Terminal::draw_rows(VteScreen *screen_,
          * Process each row independently. */
         for (row = start_row, y = start_y; row < end_row; row++, y += row_height) {
 		row_data = find_row_data(row);
-		bidi_shuffle (row_data, m_column_count);
+                bidimap = m_ringview.get_row_map(row);
                 i = j = 0;
                 /* Walk the line.
                  * Locate runs of identical bg colors within a row, and paint each run as a single rectangle. */
                 do {
                         /* Get the first cell's contents. */
-                        cell = row_data ? _vte_row_data_get_visual (row_data, i) : nullptr;
+                        cell = row_data ? _vte_row_data_get_visual (row_data, bidimap, i) : nullptr;
                         /* Find the colors for this cell. */
                         selected = cell_is_selected(i, row);
                         determine_colors(cell, selected, &fore, &back, &deco);
 
                         while (++j < column_count) {
                                 /* Retrieve the next cell. */
-                                cell = row_data ? _vte_row_data_get_visual (row_data, j) : nullptr;
+                                cell = row_data ? _vte_row_data_get_visual (row_data, bidimap, j) : nullptr;
                                 /* Resolve attributes to colors where possible and
                                  * compare visual attributes to the first character
                                  * in this chunk. */
@@ -8924,14 +8935,14 @@ Terminal::draw_rows(VteScreen *screen_,
                         /* Skip row. */
                         continue;
                 }
-                bidi_shuffle (row_data, m_column_count);
+                bidimap = m_ringview.get_row_map(row);
 
                 /* Walk the line.
                  * Locate runs of identical attributes within a row, and draw each run using a single draw_cells() call. */
                 item_count = 0;
                 for (col = 0; col < column_count; ) {
                         /* Get the character cell's contents. */
-                        cell = _vte_row_data_get_visual (row_data, col);
+                        cell = _vte_row_data_get_visual (row_data, bidimap, col);
                         if (cell == NULL) {
                                 /* We're rendering BiDi text in visual order, so an unused cell can be followed by a used one. */
                                 col++;
@@ -9146,7 +9157,8 @@ Terminal::paint_cursor()
         /* Find the first cell of the character "under" the cursor.
          * This is for CJK.  For TAB, paint the cursor where it really is. */
         VteRowData const *row_data = find_row_data(drow);
-        bidi_shuffle (row_data, m_column_count);
+        m_ringview.update();
+        bidicellmap const *bidimap = m_ringview.get_row_map(drow);
 
 	auto cell = find_charcell(col, drow);
         while (cell != NULL && cell->attr.fragment() && cell->c != '\t' && col > 0) {
@@ -9157,7 +9169,7 @@ Terminal::paint_cursor()
 	/* Draw the cursor. */
 	item.c = (cell && cell->c) ? cell->c : ' ';
 	item.columns = item.c == '\t' ? 1 : cell ? cell->attr.columns() : 1;
-	item.x = log2vis(col) * width;
+	item.x = bidimap[col].log2vis * width;
 	item.y = row_to_pixel(drow);
 	if (cell && cell->c != 0) {
 		style = _vte_draw_get_style(cell->attr.bold(), cell->attr.italic());

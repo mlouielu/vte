@@ -26,6 +26,84 @@
 #include "debug.h"
 #include "vteinternal.hh"
 
+using namespace vte::base;
+
+RingView::RingView()
+{
+        m_ring = nullptr;
+
+        m_start = m_len = m_width = 0;
+
+        m_height_alloc = 32;
+        m_width_alloc = 128;
+
+        m_bidimaps = (bidicellmap **) g_malloc (sizeof (*m_bidimaps) * m_height_alloc);
+        for (int i = 0; i < m_height_alloc; i++) {
+                m_bidimaps[i] = (bidicellmap *) g_malloc (sizeof (**m_bidimaps) * m_width_alloc);
+        }
+}
+
+RingView::~RingView()
+{
+        for (int i = 0; i < m_height_alloc; i++)
+                g_free (m_bidimaps[i]);
+	g_free (m_bidimaps);
+        /* ... */
+}
+
+void RingView::set_ring(Ring *r)
+{
+        m_ring = r;
+}
+
+void RingView::set_width(long w)
+{
+        if (G_UNLIKELY (w > m_width_alloc)) {
+                while (w > m_width_alloc) {
+                        m_width_alloc *= 2;
+                }
+                for (int i = 0; i < m_height_alloc; i++) {
+                        m_bidimaps[i] = (bidicellmap *) g_realloc (m_bidimaps[i], sizeof (*m_bidimaps) * m_width_alloc);
+                }
+        }
+
+        m_width = w;
+}
+
+void RingView::set_rows(long s, long l)
+{
+        if (G_UNLIKELY (l > m_height_alloc)) {
+                int i = m_height_alloc;
+                while (l > m_height_alloc) {
+                        m_height_alloc *= 2;
+                }
+                m_bidimaps = (bidicellmap **) g_realloc (m_bidimaps, sizeof (*m_bidimaps) * m_height_alloc);
+                for (; i < m_height_alloc; i++) {
+                        m_bidimaps[i] = (bidicellmap *) g_malloc (sizeof (**m_bidimaps) * m_width_alloc);
+                }
+        }
+
+        m_start = s;
+        m_len = l;
+}
+
+void RingView::update()
+{
+        for (int i = 0; i < m_len; i++) {
+                for (int j = 0; j < m_width; j++) {
+                        m_bidimaps[i][j].log2vis = j;
+                        m_bidimaps[i][j].vis2log = j;
+                        m_bidimaps[i][j].rtl = 0;
+                }
+        }
+}
+
+bidicellmap *RingView::get_row_map(long row)
+{
+        g_assert (row >= m_start && row < m_start + m_len);
+        return m_bidimaps[row - m_start];
+}
+
 #ifdef WITH_FRIBIDI
 
 FriBidiChar str[1000];

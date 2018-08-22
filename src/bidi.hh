@@ -20,12 +20,64 @@
 
 #include <glib.h>
 
+#include "ring.hh"
 #include "vterowdata.hh"
+
+struct _bidicellmap {
+        int log2vis;
+        int vis2log;
+        guint8 rtl: 1;
+};
+
+typedef struct _bidicellmap bidicellmap;
+
+namespace vte {
+
+namespace base {  // FIXME ???
+
+class RingView {
+public:
+        RingView();
+        ~RingView();
+
+        void set_ring(Ring *ring);
+        void set_rows(long start, long len);
+        void set_width(long width);
+
+        void update();
+
+        bidicellmap *get_row_map(long row);
+
+private:
+        Ring *m_ring;
+
+        bidicellmap **m_bidimaps;
+
+        long m_start;
+        long m_len;
+        long m_width;
+
+        long m_height_alloc;
+        long m_width_alloc;
+};
+
+
+}; /* namespace base */
+
+}; /* namespace vte */
 
 G_BEGIN_DECLS
 
 void bidi_shuffle (const VteRowData *rowdata, int width);
 int log2vis (int log);
 int vis2log (int vis);
+
+struct _bidimap {
+        vte::base::Ring *ring;
+};
+
+typedef struct _bidimap bidimap;
+
+
 
 G_END_DECLS
