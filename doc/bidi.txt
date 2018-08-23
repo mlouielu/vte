@@ -2,10 +2,10 @@
 ═════════════════╣ BiDi test – should be cat’ed at 80 columns ╠═════════════════
                  ╚════════════════════════════════════════════╝
 
-In text examples, the subsection title (bold) sometimes shows the wire order,
-transcribed to English (“Shalom” abbreviated to occupy the same width).
-This is followed by the reference rendering, using similar LTR glyphs.
-Finally the actual rendering which should match the line above.
+[01mIn the text examples, the subsection title sometimes shows the wire order,
+transcribed to English (“Shalom” abbreviated to occupy the same width).[m
+[32mThis is followed by the reference rendering, using similar LTR glyphs.[m
+[36mFinally the actual rendering which should match the line above.[m
 
 All words, except for subsection titles under explicit modes, should show up
 in human readable order.
@@ -15,151 +15,151 @@ Boxes should all show up nicely.
                                 ┌──────────────┐
 ────────────────────────────────┤ Implicit LTR ├────────────────────────────────
                                 └──────────────┘
-[1m⸤Hello⸣ ⸤Shlm⸣[22m
-⸤Hello⸣ ⸤oi7w⸣
-⸤Hello⸣ ⸤שָׁלוֹם⸣
+[01m⸤Hello⸣ ⸤Shlm⸣[m
+[32m⸤Hello⸣ ⸤oi7w⸣[m
+[36m⸤Hello⸣ ⸤שָׁלוֹם⸣[m
 
-[1mHello1 ⸤Hello2⸣ Hello3 Shlm1 ⸤Shlm2⸣ Shlm3[22m
-Hello1 ⸤Hello2⸣ Hello3 3oi7w ⸢2oi7w⸥ 1oi7w
-Hello1 ⸤Hello2⸣ Hello3 שָׁלוֹם1 ⸤שָׁלוֹם2⸣ שָׁלוֹם3
+[01mHello1 ⸤Hello2⸣ Hello3 Shlm1 ⸤Shlm2⸣ Shlm3[m
+[32mHello1 ⸤Hello2⸣ Hello3 3oi7w ⸢2oi7w⸥ 1oi7w[m
+[36mHello1 ⸤Hello2⸣ Hello3 שָׁלוֹם1 ⸤שָׁלוֹם2⸣ שָׁלוֹם3[m
 
-[1m⸤Shlm⸣ ⸤Hello⸣[22m
-⸤oi7w⸣ ⸤Hello⸣
-⸤שָׁלוֹם⸣ ⸤Hello⸣
+[01m⸤Shlm⸣ ⸤Hello⸣[m
+[32m⸤oi7w⸣ ⸤Hello⸣[m
+[36m⸤שָׁלוֹם⸣ ⸤Hello⸣[m
 
-[1mShlm1 ⸤Shlm2⸣ Shlm3 Hello1 ⸤Hello2⸣ Hello3[22m
-3oi7w ⸢2oi7w⸥ 1oi7w Hello1 ⸤Hello2⸣ Hello3
-שָׁלוֹם1 ⸤שָׁלוֹם2⸣ שָׁלוֹם3 Hello1 ⸤Hello2⸣ Hello3
+[01mShlm1 ⸤Shlm2⸣ Shlm3 Hello1 ⸤Hello2⸣ Hello3[m
+[32m3oi7w ⸢2oi7w⸥ 1oi7w Hello1 ⸤Hello2⸣ Hello3[m
+[36mשָׁלוֹם1 ⸤שָׁלוֹם2⸣ שָׁלוֹם3 Hello1 ⸤Hello2⸣ Hello3[m
 
-[1mParagraph wrapping at foreign word[22m
-Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor w
-oi7 incididunt ut labore et dolore magna aliqua.
-Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor שָׁלוֹם incididunt ut labore et dolore magna aliqua.
+[01mParagraph wrapping at foreign word[m
+[32mLorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor w[m
+[32moi7 incididunt ut labore et dolore magna aliqua.[m
+[36mLorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor שָׁלוֹם incididunt ut labore et dolore magna aliqua.[m
 
-[1mBox[22m
-┏━┓╔═╗┌─┐╭─╮
-┗━┛╚═╝└─┘╰─╯
+[01mBox[m
+┏━┓    ╔═╗    ┌─┐    ╭─╮
+┗━┛   a╚═╝b  א┘─└ב   ╰─╯
 
-[1mBox in mirrored mode[22m
-[?2500h┏━┓╔═╗┌─┐╭─╮
-┗━┛╚═╝└─┘╰─╯[?2500l
+[01mBox in mirrored mode[m[?2500h
+┏━┓    ╔═╗    ┌─┐    ╭─╮
+┗━┛   a╚═╝b  א└─┘ב   ╰─╯[?2500l
 
                                 ┌──────────────┐
 ────────────────────────────────┤ Implicit RTL ├────────────────────────────────
                                 └──────────────┘
-[1m⸤Hello⸣ ⸤Shlm⸣[22m
-                                                                  ⸢oi7w⸥ ⸢Hello⸥
-[3 S⸤Hello⸣ ⸤שָׁלוֹם⸣[0 S
+[01m⸤Hello⸣ ⸤Shlm⸣[m
+                                                                  [32m⸢oi7w⸥ ⸢Hello⸥[m
+[36m[3 S⸤Hello⸣ ⸤שָׁלוֹם⸣[0 S[m
 
-[1mHello1 ⸤Hello2⸣ Hello3 Shlm1 ⸤Shlm2⸣ Shlm3[22m
-                                      3oi7w ⸢2oi7w⸥ 1oi7w Hello1 ⸤Hello2⸣ Hello3
-[3 SHello1 ⸤Hello2⸣ Hello3 שָׁלוֹם1 ⸤שָׁלוֹם2⸣ שָׁלוֹם3[0 S
+[01mHello1 ⸤Hello2⸣ Hello3 Shlm1 ⸤Shlm2⸣ Shlm3[m
+                                      [32m3oi7w ⸢2oi7w⸥ 1oi7w Hello1 ⸤Hello2⸣ Hello3[m
+[36m[3 SHello1 ⸤Hello2⸣ Hello3 שָׁלוֹם1 ⸤שָׁלוֹם2⸣ שָׁלוֹם3[0 S[m
 
-[1m⸤Shlm⸣ ⸤Hello⸣[22m
-                                                                  ⸢Hello⸥ ⸢oi7w⸥
-[3 S⸤שָׁלוֹם⸣ ⸤Hello⸣[0 S
+[01m⸤Shlm⸣ ⸤Hello⸣[m
+                                                                  [32m⸢Hello⸥ ⸢oi7w⸥[m
+[36m[3 S⸤שָׁלוֹם⸣ ⸤Hello⸣[0 S[m
 
-[1mShlm1 ⸤Shlm2⸣ Shlm3 Hello1 ⸤Hello2⸣ Hello3[22m
-                                      Hello1 ⸤Hello2⸣ Hello3 3oi7w ⸢2oi7w⸥ 1oi7w
-[3 Sשָׁלוֹם1 ⸤שָׁלוֹם2⸣ שָׁלוֹם3 Hello1 ⸤Hello2⸣ Hello3[0 S
+[01mShlm1 ⸤Shlm2⸣ Shlm3 Hello1 ⸤Hello2⸣ Hello3[m
+                                      [32mHello1 ⸤Hello2⸣ Hello3 3oi7w ⸢2oi7w⸥ 1oi7w[m
+[36m[3 Sשָׁלוֹם1 ⸤שָׁלוֹם2⸣ שָׁלוֹם3 Hello1 ⸤Hello2⸣ Hello3[0 S[m
 
-[1mParagraph with wrong direction (should look broken)[22m
-w Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor
-                                .incididunt ut labore et dolore magna aliqua oi7
-[3 SLorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor שָׁלוֹם incididunt ut labore et dolore magna aliqua.[0 S
+[01mParagraph with wrong direction (should look broken)[m
+[32mw Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor[m
+                                [32m.incididunt ut labore et dolore magna aliqua oi7[m
+[36m[3 SLorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor שָׁלוֹם incididunt ut labore et dolore magna aliqua.[0 S[m
 
-[1mBox[22m
-[3 S┓━┏╗═╔┐─┌╮─╭
-┛━┗╝═╚┘─└╯─╰[0 S
+[01mBox[m[3 S
+┓━┏    ╗═╔    ┐─┌    ╮─╭
+┛━┗   a╚═╝b  א┘─└ב   ╯─╰[0 S
 
-[1mBox in mirrored mode[22m
-[3 S[?2500h┏━┓╔═╗┌─┐╭─╮
-┗━┛╚═╝└─┘╰─╯[?2500l[0 S
+[01mBox in mirrored mode[m[3 S[?2500h
+┏━┓    ╔═╗    ┌─┐    ╭─╮
+┗━┛   a╚═╝b  א└─┘ב   ╰─╯[?2500l[0 S
 
                         ┌──────────────────────────────┐
 ────────────────────────┤ Implicit auto (LTR fallback) ├────────────────────────
                         └──────────────────────────────┘
-[1m⸤Hello⸣ ⸤Shlm⸣[22m
-⸤Hello⸣ ⸤oi7w⸣
-[?2501h⸤Hello⸣ ⸤שָׁלוֹם⸣[?2501l
+[01m⸤Hello⸣ ⸤Shlm⸣[m
+[32m⸤Hello⸣ ⸤oi7w⸣[m
+[36m[?2501h⸤Hello⸣ ⸤שָׁלוֹם⸣[?2501l[m
 
-[1m⸤Shlm⸣ ⸤Hello⸣[22m
-                                                                  ⸢Hello⸥ ⸢oi7w⸥
-[?2501h⸤שָׁלוֹם⸣ ⸤Hello⸣[?2501l
+[01m⸤Shlm⸣ ⸤Hello⸣[m
+                                                                  [32m⸢Hello⸥ ⸢oi7w⸥[m
+[36m[?2501h⸤שָׁלוֹם⸣ ⸤Hello⸣[?2501l[m
 
-[1mParagraph wrapping at foreign word[22m
-Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor w
-oi7 incididunt ut labore et dolore magna aliqua.
-[?2501hLorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor שָׁלוֹם incididunt ut labore et dolore magna aliqua.[?2501l
+[01mParagraph wrapping at foreign word[m
+[32mLorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor w[m
+[32moi7 incididunt ut labore et dolore magna aliqua.[m
+[36m[?2501hLorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor שָׁלוֹם incididunt ut labore et dolore magna aliqua.[?2501l[m
 
-[1mBox[22m
-[?2501h┏━┓╔═╗┌─┐╭─╮
-┗━┛╚═╝└─┘╰─╯[?2501l
+[01mBox[m[?2501h
+┏━┓    ╔═╗    ┌─┐    ╭─╮
+┗━┛   a╚═╝b  א┘─└ב   ╰─╯[?2501l
 
-[1mBox in mirrored mode[22m
-[?2501h[?2500h┏━┓╔═╗┌─┐╭─╮
-┗━┛╚═╝└─┘╰─╯[?2500l[?2501l
+[01mBox in mirrored mode[m[?2501h[?2500h
+┏━┓    ╔═╗    ┌─┐    ╭─╮
+┗━┛   a╚═╝b  א└─┘ב   ╰─╯[?2500l[?2501l
 
                         ┌──────────────────────────────┐
 ────────────────────────┤ Implicit auto (RTL fallback) ├────────────────────────
                         └──────────────────────────────┘
-[1m⸤Hello⸣ ⸤Shlm⸣[22m
-⸤Hello⸣ ⸤oi7w⸣
-[3 S[?2501h⸤Hello⸣ ⸤שָׁלוֹם⸣[?2501l[0 S
+[01m⸤Hello⸣ ⸤Shlm⸣[m
+[32m⸤Hello⸣ ⸤oi7w⸣[m
+[36m[3 S[?2501h⸤Hello⸣ ⸤שָׁלוֹם⸣[?2501l[0 S[m
 
-[1m⸤Shlm⸣ ⸤Hello⸣[22m
-                                                                  ⸢Hello⸥ ⸢oi7w⸥
-[3 S[?2501h⸤שָׁלוֹם⸣ ⸤Hello⸣[?2501l[0 S
+[01m⸤Shlm⸣ ⸤Hello⸣[m
+                                                                  [32m⸢Hello⸥ ⸢oi7w⸥[m
+[36m[3 S[?2501h⸤שָׁלוֹם⸣ ⸤Hello⸣[?2501l[0 S[m
 
-[1mParagraph wrapping at foreign word[22m
-Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor w
-oi7 incididunt ut labore et dolore magna aliqua.
-[3 S[?2501hLorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor שָׁלוֹם incididunt ut labore et dolore magna aliqua.[?2501l[0 S
+[01mParagraph wrapping at foreign word[m
+[32mLorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor w[m
+[32moi7 incididunt ut labore et dolore magna aliqua.[m
+[36m[3 S[?2501hLorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor שָׁלוֹם incididunt ut labore et dolore magna aliqua.[?2501l[0 S[m
 
-[1mBox[22m
-[3 S[?2501h┓━┏╗═╔┐─┌╮─╭
-┛━┗╝═╚┘─└╯─╰[?2501l[0 S
+[01mBox[m[3 S[?2501h
+┓━┏    ╗═╔    ┐─┌    ╮─╭
+┛━┗   א╝═╚ב  a└─┘b   ╯─╰[?2501l[0 S
 
-[1mBox in mirrored mode[22m
-[3 S[?2501h[?2500h┏━┓╔═╗┌─┐╭─╮
-┗━┛╚═╝└─┘╰─╯[?2500l[?2501l[0 S
+[01mBox in mirrored mode[m[3 S[?2501h[?2500h
+┏━┓    ╔═╗    ┌─┐    ╭─╮
+┗━┛   א╚═╝ב  a└─┘b   ╰─╯[?2500l[?2501l[0 S
 
                                 ┌──────────────┐
 ────────────────────────────────┤ Explicit LTR ├────────────────────────────────
                                 └──────────────┘
-[1m⸤Hello⸣ ⸤mlhS⸣[22m
-⸤Hello⸣ ⸤oi7w⸣
-[8l⸤Hello⸣ ⸤םוֹלשָׁ⸣[8h
+[01m⸤Hello⸣ ⸤mlhS⸣[m
+[32m⸤Hello⸣ ⸤oi7w⸣[m
+[36m[8l⸤Hello⸣ ⸤םוֹלשָׁ⸣[8h[m
 
-[1m⸤mlhS⸣ ⸤Hello⸣[22m
-⸤oi7w⸣ ⸤Hello⸣
-[8l⸤םוֹלשָׁ⸣ ⸤Hello⸣[8h
+[01m⸤mlhS⸣ ⸤Hello⸣[m
+[32m⸤oi7w⸣ ⸤Hello⸣[m
+[36m[8l⸤םוֹלשָׁ⸣ ⸤Hello⸣[8h[m
 
-[1mBox[22m
-[8l┏━┓╔═╗┌─┐╭─╮
-┗━┛╚═╝└─┘╰─╯[8h
+[01mBox[m[8l
+┏━┓    ╔═╗    ┌─┐    ╭─╮
+┗━┛   a╚═╝b  ב└─┘א   ╰─╯[8h
 
-[1mBox in mirrored mode[22m
-[8l[?2500h┏━┓╔═╗┌─┐╭─╮
-┗━┛╚═╝└─┘╰─╯[?2500l[8h
+[01mBox in mirrored mode[m[8l[?2500h
+┏━┓    ╔═╗    ┌─┐    ╭─╮
+┗━┛   a╚═╝b  ב└─┘א   ╰─╯[?2500l[8h
 
                                 ┌──────────────┐
 ────────────────────────────────┤ Explicit RTL ├────────────────────────────────
                                 └──────────────┘
-[1m⸤olleH⸣ ⸤Shlm⸣[22m
-                                                                  ⸢oi7w⸥ ⸢Hello⸥
-[8l[3 S⸤olleH⸣ ⸤שָׁלוֹם⸣[0 S[8h
+[01m⸤olleH⸣ ⸤Shlm⸣[m
+                                                                  [32m⸢oi7w⸥ ⸢Hello⸥[m
+[36m[8l[3 S⸤olleH⸣ ⸤שָׁלוֹם⸣[0 S[8h[m
 
-[1m⸤Shlm⸣ ⸤olleH⸣[22m
-                                                                  ⸢Hello⸥ ⸢oi7w⸥
-[8l[3 S⸤שָׁלוֹם⸣ ⸤olleH⸣[0 S[8h
+[01m⸤Shlm⸣ ⸤olleH⸣[m
+                                                                  [32m⸢Hello⸥ ⸢oi7w⸥[m
+[36m[8l[3 S⸤שָׁלוֹם⸣ ⸤olleH⸣[0 S[8h[m
 
-[1mBox[22m
-[8l[3 S┓━┏╗═╔┐─┌╮─╭
-┛━┗╝═╚┘─└╯─╰[0 S[8h
+[01mBox[m[8l[3 S
+┓━┏    ╗═╔    ┐─┌    ╮─╭
+┛━┗   b╝═╚a  א┘─└ב   ╯─╰[0 S[8h
 
-[1mBox in mirrored mode[22m
-[8l[3 S[?2500h┏━┓╔═╗┌─┐╭─╮
-┗━┛╚═╝└─┘╰─╯[?2500l[0 S[8h
+[01mBox in mirrored mode[m[8l[3 S[?2500h
+┏━┓    ╔═╗    ┌─┐    ╭─╮
+┗━┛   b╚═╝a  א└─┘ב   ╰─╯[?2500l[0 S[8h
 
 ────────────────────────────────────────────────────────────────────────────────
