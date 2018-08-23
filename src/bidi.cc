@@ -102,8 +102,16 @@ void RingView::set_rows(long s, long l)
 void RingView::update()
 {
         long i = m_start;
+        const VteRowData *row_data = m_ring->index(m_start);
+
+        if (row_data->attr.bidi_flags & VTE_BIDI_IMPLICIT) {
+                i = find_paragraph(m_start);
+                if (i == -1) {
+                        i = explicit_paragraph(m_start, !!(row_data->attr.bidi_flags & VTE_BIDI_RTL));
+                }
+        }
         while (i < m_start + m_len) {
-                i = paragraph (i);
+                i = paragraph(i);
         }
 }
 
@@ -211,6 +219,25 @@ long RingView::explicit_paragraph(long row, bool rtl)
                         break;
         }
         return row;
+}
+
+/* For the given row, find the first row of its paragraph.
+ * Returns -1 if have to walk backwards too much. */
+/* FIXME this could be much cheaper, we don't need to read the actual rows (text_stream),
+ * we only need the soft_wrapped flag which is stored in row_stream. Needs method in ring. */
+long RingView::find_paragraph(long row)
+{
+        long row_stop = row - VTE_BIDI_PARAGRAPH_LENGTH_MAX;
+        const VteRowData *row_data;
+
+        while (row-- > row_stop) {
+                if (row == -1)
+                        return 0;
+                row_data = m_ring->index(row);
+                if (row_data == nullptr || !row_data->attr.soft_wrapped)
+                        return row + 1;
+        }
+        return -1;
 }
 
 /* Figure out the mapping for the paragraph starting at the given row.

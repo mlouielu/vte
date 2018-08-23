@@ -75,6 +75,7 @@ private:
 
         void explicit_line(long row, bool rtl);
         long explicit_paragraph(long row, bool rtl);
+        long find_paragraph(long row);
         long paragraph(long row);
 };
 
