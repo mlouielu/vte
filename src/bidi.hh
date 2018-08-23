@@ -23,6 +23,7 @@
 #include "ring.hh"
 #include "vterowdata.hh"
 
+// FIXME these names are ugly. Also, make these declarations private if possible.
 struct _bidicellmap {
         int log2vis;
         int vis2log;
@@ -30,6 +31,13 @@ struct _bidicellmap {
 };
 
 typedef struct _bidicellmap bidicellmap;
+
+struct _bidirow {
+        guint8 rtl: 1;
+        bidicellmap *map;
+};
+
+typedef struct _bidirow bidirow;
 
 namespace vte {
 
@@ -46,12 +54,17 @@ public:
 
         void update();
 
-        bidicellmap *get_row_map(long row);
+        bidicellmap *get_row_map(long row);  // FIXME remove?
+
+        long log2vis(long row, long col);
+        long vis2log(long row, long col);
+        bool log_is_rtl(long row, long col);
+        bool vis_is_rtl(long row, long col);
 
 private:
         Ring *m_ring;
 
-        bidicellmap **m_bidimaps;
+        bidirow *m_bidirows;
 
         long m_start;
         long m_len;
@@ -60,8 +73,8 @@ private:
         long m_height_alloc;
         long m_width_alloc;
 
-        void explicit_line(long row, gboolean rtl);
-        long explicit_paragraph(long row, gboolean rtl);
+        void explicit_line(long row, bool rtl);
+        long explicit_paragraph(long row, bool rtl);
         long paragraph(long row);
 };
 
