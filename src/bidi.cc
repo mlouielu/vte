@@ -331,8 +331,8 @@ long RingView::paragraph(long row)
                 return explicit_paragraph (row_orig, rtl);
         }
 
-        /* For convenience, from now on this variable contains the resolved (i.e. possibly autodetected) value. */
         g_assert_cmpint (pbase_dir, !=, FRIBIDI_PAR_ON);
+        /* For convenience, from now on this variable contains the resolved (i.e. possibly autodetected) value. */
         rtl = (pbase_dir == FRIBIDI_PAR_RTL || pbase_dir == FRIBIDI_PAR_WRTL);
 
         if (level == 1 || (rtl && level == 2)) {
@@ -343,13 +343,11 @@ long RingView::paragraph(long row)
         /* Reshuffle line by line. */
         row = row_orig;
         line = 0;
+        if (G_UNLIKELY (row < m_start)) {
+                line = m_start - row;
+                row = m_start;
+        }
         while (row < m_start + m_len) {
-                if (G_UNLIKELY (row < m_start)) {
-                        row++;
-                        line++;
-                        continue;
-                }
-
                 m_bidirows[row - m_start].rtl = rtl;
                 map = m_bidirows[row - m_start].map;
 
@@ -397,7 +395,7 @@ long RingView::paragraph(long row)
                 /* Copy to our realm. Proceed in visual order.*/
                 v = 0;
                 if (rtl) {
-                        /* Unused cell on the left for RTL paragraphs */
+                        /* Unused cells on the left for RTL paragraphs */
                         int unused = MAX(m_width - row_data->len, 0);
                         for (; v < unused; v++) {
                                 map[v].vis2log = m_width - 1 - v;
@@ -429,7 +427,7 @@ long RingView::paragraph(long row)
                         }
                 }
                 if (!rtl) {
-                        /* Unused cell on the right for LTR paragraphs */
+                        /* Unused cells on the right for LTR paragraphs */
                         g_assert_cmpint (v, ==, MIN (row_data->len, m_width));
                         for (; v < m_width; v++) {
                                 map[v].vis2log = v;
