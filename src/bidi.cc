@@ -231,8 +231,8 @@ long RingView::find_paragraph(long row)
         const VteRowData *row_data;
 
         while (row-- > row_stop) {
-                if (row == -1)
-                        return 0;
+                if (row < _vte_ring_delta(m_ring))
+                        return row + 1;
                 row_data = m_ring->index(row);
                 if (row_data == nullptr || !row_data->attr.soft_wrapped)
                         return row + 1;
