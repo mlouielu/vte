@@ -282,7 +282,7 @@ long RingView::paragraph(long row)
 
         /* Extract the paragraph's contents, omitting unused and fragment cells. */
         while (row < m_start + m_len) {
-                row_data = m_ring->index(row++);
+                row_data = m_ring->index(row);
                 if (row_data == nullptr)
                         break;
 
@@ -306,6 +306,7 @@ long RingView::paragraph(long row)
                 }
 
                 lines[++line] = c;
+                row++;
 
                 if (!row_data->attr.soft_wrapped)
                         break;
@@ -351,7 +352,7 @@ long RingView::paragraph(long row)
                 m_bidirows[row - m_start].rtl = rtl;
                 map = m_bidirows[row - m_start].map;
 
-                row_data = m_ring->index(row++);
+                row_data = m_ring->index(row);
                 if (row_data == nullptr)
                         break;
 
@@ -456,6 +457,7 @@ long RingView::paragraph(long row)
 
 next_line:
                 line++;
+                row++;
 
                 if (!row_data->attr.soft_wrapped)
                         break;
