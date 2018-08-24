@@ -8441,7 +8441,7 @@ Terminal::draw_cells(struct _vte_draw_text_request *items,
 		columns = 0;
 		x = items[i].x;
 		y = items[i].y;
-                /* Items are not necessarily contiguous. */
+                /* Items are not necessarily contiguous in LTR order. Combine the ones that form an LTR run. */
                 for (; i < n && items[i].x == x + columns * column_width && items[i].y == y; i++) {
 			columns += items[i].columns;
 		}
@@ -8482,7 +8482,7 @@ Terminal::draw_cells(struct _vte_draw_text_request *items,
 		do {
 			x = items[i].x;
 			y = items[i].y;
-                        /* Items are not necessarily contiguous. */
+                        /* Items are not necessarily contiguous in LTR order. Combine the ones that form an LTR run. */
                         for (columns = 0; i < n && items[i].x == x + columns * column_width && items[i].y == y; i++) {
 				columns += items[i].columns;
 			}
