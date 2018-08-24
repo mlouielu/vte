@@ -9026,7 +9026,7 @@ Terminal::draw_rows(VteScreen *screen_,
                         g_assert_cmpint (item_count, <, column_count);
                         items[item_count].c = c;
                         items[item_count].columns = j - col;
-                        items[item_count].x = col * column_width;
+                        items[item_count].x = (col - (bidimap[i].vis_rtl ? j - col - 1 : 0)) * column_width;
                         items[item_count].y = y;
                         items[item_count].mirror = bidimap[i].vis_rtl;
                         items[item_count].box_mirror = !!(row_data->attr.bidi_flags & VTE_BIDI_BOX_MIRROR);
