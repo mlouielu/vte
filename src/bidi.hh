@@ -86,4 +86,6 @@ private:
 
 G_BEGIN_DECLS
 
+gboolean vte_bidi_get_mirror_char (gunichar ch, gboolean mirror_box_drawing, gunichar *mirrored_ch);
+
 G_END_DECLS

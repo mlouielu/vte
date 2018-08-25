@@ -26,10 +26,7 @@
 #include <glib.h>
 #include <gtk/gtk.h>
 
-#ifdef WITH_FRIBIDI
-#include <fribidi.h>
-#endif
-
+#include "bidi.hh"
 #include "vtedraw.hh"
 #include "vtedefines.hh"
 #include "debug.h"
@@ -997,7 +994,7 @@ _vte_draw_unichar_is_local_graphic(vteunistr c)
 /* Draw the graphic representation of a line-drawing or special graphics
  * character. */
 static void
-_vte_draw_terminal_draw_graphic(struct _vte_draw *draw, vteunistr c, gboolean mirror, vte::color::rgb const* fg,
+_vte_draw_terminal_draw_graphic(struct _vte_draw *draw, vteunistr c, vte::color::rgb const* fg,
                                 gint x, gint y,
                                 gint font_width, gint columns, gint font_height)
 {
@@ -1165,16 +1162,15 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw, vteunistr c, gboolean mi
                                        upper_half - light_line_width / 2 + light_line_width,
                                        upper_half - heavy_line_width / 2 + heavy_line_width,
                                        height};
-                int xi, xi_bidi, yi;
+                int xi, yi;
                 cairo_set_line_width(cr, 0);
                 for (yi = 4; yi >= 0; yi--) {
                         for (xi = 4; xi >= 0; xi--) {
                                 if (bitmap & 1) {
-                                        xi_bidi = mirror ? 4 - xi : xi;
                                         cairo_rectangle(cr,
-                                                        x + xboundaries[xi_bidi],
+                                                        x + xboundaries[xi],
                                                         y + yboundaries[yi],
-                                                        xboundaries[xi_bidi + 1] - xboundaries[xi_bidi],
+                                                        xboundaries[xi + 1] - xboundaries[xi],
                                                         yboundaries[yi + 1] - yboundaries[yi]);
                                         cairo_fill(cr);
                                 }
@@ -1247,7 +1243,7 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw, vteunistr c, gboolean mi
         case 0x256f: /* box drawings light arc up and left */
         case 0x2570: /* box drawings light arc up and right */
         {
-                const guint v = (c - 0x256d) ^ (mirror ? 1 : 0);
+                const guint v = c - 0x256d;
                 int line_width;
                 int radius;
 
@@ -1297,12 +1293,12 @@ _vte_draw_terminal_draw_graphic(struct _vte_draw *draw, vteunistr c, gboolean mi
                 cairo_set_line_cap(cr, CAIRO_LINE_CAP_ROUND);
                 cairo_set_line_width(cr, light_line_width);
                 adjust = light_line_width / 2.;
-                if (c != (mirror ? 0x2572 : 0x2571)) {
+                if (c != 0x2571) {
                         cairo_move_to(cr, x + adjust, y + adjust);
                         cairo_line_to(cr, xright - adjust, ybottom - adjust);
                         cairo_stroke(cr);
                 }
-                if (c != (mirror ? 0x2571 : 0x2572)) {
+                if (c != 0x2572) {
                         cairo_move_to(cr, xright - adjust, y + adjust);
                         cairo_line_to(cr, x + adjust, ybottom - adjust);
                         cairo_stroke(cr);
@@ -1479,15 +1475,7 @@ _vte_draw_text_internal (struct _vte_draw *draw,
 
                 if (G_UNLIKELY (requests[i].mirror)) {
                         // FIXME what if 'c' is actually a real vteunistr?
-#ifdef WITH_FRIBIDI
-                        /* Prefer the FriBidi variant as that's more likely
-                         * to be in sync with the rest of our BiDi stuff. */
-                        fribidi_get_mirror_char (c, &c);
-#else
-                        /* Fall back to glib, so that we still get mirrored
-                         * characters in explicit RTL mode. */
-                        g_unichar_get_mirror_char (c, &c);
-#endif
+                        vte_bidi_get_mirror_char (c, requests[i].box_mirror, &c);
                 }
 
 		struct unistr_info *uinfo = font_info_get_unistr_info (font, c);
@@ -1499,7 +1487,7 @@ _vte_draw_text_internal (struct _vte_draw *draw,
                 y = requests[i].y + draw->char_spacing.top + font->ascent;
 
                 if (_vte_draw_unichar_is_local_graphic(c)) {
-                        _vte_draw_terminal_draw_graphic(draw, c, requests[i].mirror && requests[i].box_mirror, color,
+                        _vte_draw_terminal_draw_graphic(draw, c, color,
                                                         requests[i].x, requests[i].y,
                                                         font->width, requests[i].columns, font->height);
                         continue;
