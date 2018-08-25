@@ -28,17 +28,6 @@
 #include "vteinternal.hh"
 
 
-
-#ifdef WITH_FRIBIDI
-FriBidiChar fribidi_chars[100000];
-FriBidiCharType fribidi_chartypes[100000];
-FriBidiBracketType fribidi_brackettypes[100000];
-FriBidiLevel fribidi_levels[100000];
-FriBidiStrIndex fribidi_map[100000];
-#endif
-
-
-
 using namespace vte::base;
 
 RingView::RingView()
@@ -280,6 +269,10 @@ long RingView::paragraph(long row)
         int k, l, v;
         unsigned int col;
 
+        /* The buffer size assumes that combining chars are omitted. It's an overkill, but convenient solution. */
+        // FIXME this is valid in C++, not just a gcc extension, correct? Or should we call g_newa()?
+        FriBidiChar fribidi_chars[VTE_BIDI_PARAGRAPH_LENGTH_MAX * m_width];
+
         /* Extract the paragraph's contents, omitting unused and fragment cells. */
         while (row < m_start + m_len) {
                 row_data = m_ring->index(row);
@@ -318,8 +311,12 @@ long RingView::paragraph(long row)
         }
 
         /* Run the BiDi algorithm on the paragraph to get the embedding levels. */
+        // FIXME this is valid in C++, not just a gcc extension, correct? Or should we call g_newa()?
+        FriBidiCharType fribidi_chartypes[c];
+        FriBidiBracketType fribidi_brackettypes[c];
+        FriBidiLevel fribidi_levels[c];
+        FriBidiStrIndex fribidi_map[c];
 
-        // FIXME are the WLTR / WRTL paragraph directions what I think they are?
         pbase_dir = autodir ? (rtl ? FRIBIDI_PAR_WRTL : FRIBIDI_PAR_WLTR)
                             : (rtl ? FRIBIDI_PAR_RTL  : FRIBIDI_PAR_LTR );
 
@@ -370,8 +367,8 @@ long RingView::paragraph(long row)
                 g_assert_cmpint (k, ==, lines[line + 1]);
 
                 // FIXME is it okay to run the BiDi algorithm without the combining accents?
-                // If we need to preserve them then we need to double check whether
-                // fribidi_reorder_line() requires a FRIBIDI_FLAG_REORDER_NSM or not.
+                // If we need to preserve them then we need to have a bigger fribidi_chars array,
+                // and double check whether fribidi_reorder_line() requires a FRIBIDI_FLAG_REORDER_NSM or not.
                 level = fribidi_reorder_line (FRIBIDI_FLAGS_DEFAULT,
                                               fribidi_chartypes,
                                               lines[line + 1] - lines[line],
@@ -470,7 +467,7 @@ next_line:
 
 gboolean vte_bidi_get_mirror_char (gunichar ch, gboolean mirror_box_drawing, gunichar *mirrored_ch)
 {
-        unsigned char mirrored_2500[0x80] = {
+        static const unsigned char mirrored_2500[0x80] = {
                 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x10, 0x11, 0x12, 0x13,
                 0x0c, 0x0d, 0x0e, 0x0f, 0x18, 0x19, 0x1a, 0x1b, 0x14, 0x15, 0x16, 0x17, 0x24, 0x25, 0x26, 0x27,
                 0x28, 0x29, 0x2a, 0x2b, 0x1c, 0x1d, 0x1e, 0x1f, 0x20, 0x21, 0x22, 0x23, 0x2c, 0x2e, 0x2d, 0x2f,
@@ -488,12 +485,10 @@ gboolean vte_bidi_get_mirror_char (gunichar ch, gboolean mirror_box_drawing, gun
         }
 
 #ifdef WITH_FRIBIDI
-        /* Prefer the FriBidi variant as that's more likely
-         * to be in sync with the rest of our BiDi stuff. */
+        /* Prefer the FriBidi variant as that's more likely to be in sync with the rest of our BiDi stuff. */
         return fribidi_get_mirror_char (ch, mirrored_ch);
 #else
-        /* Fall back to glib, so that we still get mirrored
-         * characters in explicit RTL mode. */
+        /* Fall back to glib, so that we still get mirrored characters in explicit RTL mode. */
         return g_unichar_get_mirror_char (ch, mirrored_ch);
 #endif
 }

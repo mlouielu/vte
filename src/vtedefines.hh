@@ -138,4 +138,4 @@
 #define VTE_WINDOW_TITLE_STACK_MAX_DEPTH (8)
 
 /* Maximum length of a paragraph, in lines, that might get proper BiDi treatment. */
-#define VTE_BIDI_PARAGRAPH_LENGTH_MAX   20
+#define VTE_BIDI_PARAGRAPH_LENGTH_MAX   500
