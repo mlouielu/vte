@@ -154,6 +154,10 @@ Boxes should all show up nicely.
                                                                   [32m⸢Hello⸥ ⸢oi7w⸥[m
 [36m[8l[3 S⸤שָׁלוֹם⸣ ⸤olleH⸣[0 S[8h[m
 
+[01mFullwidth characters with underlines[m
+                        [32m[4m［Ｌｏｒｅｍ[24m  ｉｐｓｕｍ  ｄｏｌｏｒ  ｓｉｔ  [4:3mａｍｅｔ）[m
+[36m[8l[3 S[4:3m（ｔｅｍａ[24m  ｔｉｓ  ｒｏｌｏｄ  ｍｕｓｐｉ  [4mｍｅｒｏＬ］[0 S[8h[m
+
 [01mBox[m[8l[3 S
 ┓━┏    ╗═╔    ┐─┌    ╮─╭
 ┛━┗   b╝═╚a  א┘─└ב   ╯─╰[0 S[8h
