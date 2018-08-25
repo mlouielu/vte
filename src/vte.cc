@@ -9167,7 +9167,6 @@ Terminal::paint_cursor()
 
         /* Find the first cell of the character "under" the cursor.
          * This is for CJK.  For TAB, paint the cursor where it really is. */
-        VteRowData const *row_data = find_row_data(drow);
         bidicellmap const *bidimap = m_ringview.get_row_map(drow);
 
 	auto cell = find_charcell(col, drow);
