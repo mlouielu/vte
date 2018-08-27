@@ -36,6 +36,10 @@ Boxes should all show up nicely.
 [32moi7 incididunt ut labore et dolore magna aliqua.[m
 [36mLorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor שָׁלוֹם incididunt ut labore et dolore magna aliqua.[m
 
+[01mDouble wide[m
+[32ma＜z  n＞x[m
+[36ma＜z  א＜ת[m
+
 [01mBox[m
 ┏━┓    ╔═╗    ┌─┐    ╭─╮
 ┗━┛   a╚═╝b  א┘─└ב   ╰─╯
@@ -67,6 +71,10 @@ Boxes should all show up nicely.
 [32mw Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor[m
                                 [32m.incididunt ut labore et dolore magna aliqua oi7[m
 [36m[3 SLorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor שָׁלוֹם incididunt ut labore et dolore magna aliqua.[0 S[m
+
+[01mDouble wide[m
+                                                                      [32ma＜z  n＞x[m
+[36m[3 Sא＜ת  a＜z[0 S[m
 
 [01mBox[m[3 S
 ┓━┏    ╗═╔    ┐─┌    ╮─╭

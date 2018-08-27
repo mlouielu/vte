@@ -8933,7 +8933,7 @@ Terminal::draw_rows(VteScreen *screen_,
                                 bg.blue  = 0xC000 + (bg.blue  - 0xC000) / 2;
                                 _vte_draw_fill_rectangle (
                                                 m_draw,
-                                                x + i * column_width,
+                                                i * column_width,
                                                 y + row_height / 8,
                                                 (j - i) * column_width,
                                                 row_height * 3 / 4,
