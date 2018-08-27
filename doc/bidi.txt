@@ -19,17 +19,17 @@ Boxes should all show up nicely.
 [32m⸤Hello⸣ ⸤oi7w⸣[m
 [36m⸤Hello⸣ ⸤שָׁלוֹם⸣[m
 
-[01mHello1 ⸤Hello2⸣ Hello3 Shlm1 ⸤Shlm2⸣ Shlm3[m
-[32mHello1 ⸤Hello2⸣ Hello3 3oi7w ⸢2oi7w⸥ 1oi7w[m
-[36mHello1 ⸤Hello2⸣ Hello3 שָׁלוֹם1 ⸤שָׁלוֹם2⸣ שָׁלוֹם3[m
+[01mHello01 ⸤Hello02⸣ Hello03 Shlm01 ⸤Shlm02⸣ Shlm03[m
+[32mHello01 ⸤Hello02⸣ Hello03 03oi7w ⸢02oi7w⸥ 01oi7w[m
+[36mHello01 ⸤Hello02⸣ Hello03 שָׁלוֹם01 ⸤שָׁלוֹם02⸣ שָׁלוֹם03[m
 
 [01m⸤Shlm⸣ ⸤Hello⸣[m
 [32m⸤oi7w⸣ ⸤Hello⸣[m
 [36m⸤שָׁלוֹם⸣ ⸤Hello⸣[m
 
-[01mShlm1 ⸤Shlm2⸣ Shlm3 Hello1 ⸤Hello2⸣ Hello3[m
-[32m3oi7w ⸢2oi7w⸥ 1oi7w Hello1 ⸤Hello2⸣ Hello3[m
-[36mשָׁלוֹם1 ⸤שָׁלוֹם2⸣ שָׁלוֹם3 Hello1 ⸤Hello2⸣ Hello3[m
+[01mShlm01 ⸤Shlm02⸣ Shlm03 Hello01 ⸤Hello02⸣ Hello03[m
+[32m03oi7w ⸢02oi7w⸥ 01oi7w Hello01 ⸤Hello02⸣ Hello03[m
+[36mשָׁלוֹם01 ⸤שָׁלוֹם02⸣ שָׁלוֹם03 Hello01 ⸤Hello02⸣ Hello03[m
 
 [01mParagraph wrapping at foreign word[m
 [32mLorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor w[m
@@ -51,17 +51,17 @@ Boxes should all show up nicely.
                                                                   [32m⸢oi7w⸥ ⸢Hello⸥[m
 [36m[3 S⸤Hello⸣ ⸤שָׁלוֹם⸣[0 S[m
 
-[01mHello1 ⸤Hello2⸣ Hello3 Shlm1 ⸤Shlm2⸣ Shlm3[m
-                                      [32m3oi7w ⸢2oi7w⸥ 1oi7w Hello1 ⸤Hello2⸣ Hello3[m
-[36m[3 SHello1 ⸤Hello2⸣ Hello3 שָׁלוֹם1 ⸤שָׁלוֹם2⸣ שָׁלוֹם3[0 S[m
+[01mHello01 ⸤Hello02⸣ Hello03 Shlm01 ⸤Shlm02⸣ Shlm03[m
+                                [32m03oi7w ⸢02oi7w⸥ 01oi7w Hello01 ⸤Hello02⸣ Hello03[m
+[36m[3 SHello01 ⸤Hello02⸣ Hello03 שָׁלוֹם01 ⸤שָׁלוֹם02⸣ שָׁלוֹם03[0 S[m
 
 [01m⸤Shlm⸣ ⸤Hello⸣[m
                                                                   [32m⸢Hello⸥ ⸢oi7w⸥[m
 [36m[3 S⸤שָׁלוֹם⸣ ⸤Hello⸣[0 S[m
 
-[01mShlm1 ⸤Shlm2⸣ Shlm3 Hello1 ⸤Hello2⸣ Hello3[m
-                                      [32mHello1 ⸤Hello2⸣ Hello3 3oi7w ⸢2oi7w⸥ 1oi7w[m
-[36m[3 Sשָׁלוֹם1 ⸤שָׁלוֹם2⸣ שָׁלוֹם3 Hello1 ⸤Hello2⸣ Hello3[0 S[m
+[01mShlm01 ⸤Shlm02⸣ Shlm03 Hello01 ⸤Hello02⸣ Hello03[m
+                                [32mHello01 ⸤Hello02⸣ Hello03 03oi7w ⸢02oi7w⸥ 01oi7w[m
+[36m[3 Sשָׁלוֹם01 ⸤שָׁלוֹם02⸣ שָׁלוֹם03 Hello01 ⸤Hello02⸣ Hello03[0 S[m
 
 [01mParagraph with wrong direction (should look broken)[m
 [32mw Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor[m
