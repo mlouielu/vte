@@ -417,15 +417,7 @@ long RingView::paragraph(long row)
                         cell = _vte_row_data_get (row_data, tl);
                         g_assert (!cell->attr.fragment());
                         g_assert (cell->attr.columns() > 0);
-                        if (fribidi_levels[fl] % 2 == 0) {
-                                /* LTR character directionality. */
-                                for (col = 0; col < cell->attr.columns(); col++) {
-                                        map[tv].vis2log = tl;
-                                        map[tv].vis_rtl = FALSE;
-                                        tv++;
-                                        tl++;
-                                }
-                        } else {
+                        if (FRIBIDI_LEVEL_IS_RTL(fribidi_levels[fl])) {
                                 /* RTL character directionality. Map fragments in reverse order. */
                                 for (col = 0; col < cell->attr.columns(); col++) {
                                         map[tv + col].vis2log = tl + cell->attr.columns() - 1 - col;
@@ -433,6 +425,14 @@ long RingView::paragraph(long row)
                                 }
                                 tv += cell->attr.columns();
                                 tl += cell->attr.columns();
+                        } else {
+                                /* LTR character directionality. */
+                                for (col = 0; col < cell->attr.columns(); col++) {
+                                        map[tv].vis2log = tl;
+                                        map[tv].vis_rtl = FALSE;
+                                        tv++;
+                                        tl++;
+                                }
                         }
                 }
                 if (!rtl) {
