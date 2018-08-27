@@ -263,10 +263,10 @@ long RingView::paragraph(long row)
         int lines[VTE_BIDI_PARAGRAPH_LENGTH_MAX + 1];
         lines[0] = 0;
         int line = 0;
-        int c = 0;
+        int count = 0;
         int row_orig = row;
-        int j = 0;
-        int k, l, v;
+        int tl, tv;  /* terminal logical and visual */
+        int fl, fv;  /* fribidi logical and visual */
         unsigned int col;
 
         /* The buffer size assumes that combining chars are omitted. It's an overkill, but convenient solution. */
@@ -287,18 +287,18 @@ long RingView::paragraph(long row)
                 /* A row_data might be longer, in case rewrapping is disabled and the window was narrowed.
                  * Truncate the logical data before applying BiDi. */
                 // FIXME what the heck to do if this truncation cuts a TAB or CJK in half???
-                for (j = 0; j < m_width && j < row_data->len; j++) {
-                        cell = _vte_row_data_get (row_data, j);
+                for (tl = 0; tl < m_width && tl < row_data->len; tl++) {
+                        cell = _vte_row_data_get (row_data, tl);
                         if (cell->attr.fragment())
                                 continue;
 
                         // FIXME is it okay to run the BiDi algorithm without the combining accents?
                         // If we need to preserve them then we need to double check whether
                         // fribidi_reorder_line() requires a FRIBIDI_FLAG_REORDER_NSM or not.
-                        fribidi_chars[c++] = _vte_unistr_get_base(cell->c);
+                        fribidi_chars[count++] = _vte_unistr_get_base(cell->c);
                 }
 
-                lines[++line] = c;
+                lines[++line] = count;
                 row++;
 
                 if (!row_data->attr.soft_wrapped)
@@ -312,17 +312,17 @@ long RingView::paragraph(long row)
 
         /* Run the BiDi algorithm on the paragraph to get the embedding levels. */
         // FIXME this is valid in C++, not just a gcc extension, correct? Or should we call g_newa()?
-        FriBidiCharType fribidi_chartypes[c];
-        FriBidiBracketType fribidi_brackettypes[c];
-        FriBidiLevel fribidi_levels[c];
-        FriBidiStrIndex fribidi_map[c];
+        FriBidiCharType fribidi_chartypes[count];
+        FriBidiBracketType fribidi_brackettypes[count];
+        FriBidiLevel fribidi_levels[count];
+        FriBidiStrIndex fribidi_map[count];
 
         pbase_dir = autodir ? (rtl ? FRIBIDI_PAR_WRTL : FRIBIDI_PAR_WLTR)
                             : (rtl ? FRIBIDI_PAR_RTL  : FRIBIDI_PAR_LTR );
 
-        fribidi_get_bidi_types (fribidi_chars, c, fribidi_chartypes);
-        fribidi_get_bracket_types (fribidi_chars, c, fribidi_chartypes, fribidi_brackettypes);
-        level = fribidi_get_par_embedding_levels_ex (fribidi_chartypes, fribidi_brackettypes, c, &pbase_dir, fribidi_levels);
+        fribidi_get_bidi_types (fribidi_chars, count, fribidi_chartypes);
+        fribidi_get_bracket_types (fribidi_chars, count, fribidi_chartypes, fribidi_brackettypes);
+        level = fribidi_get_par_embedding_levels_ex (fribidi_chartypes, fribidi_brackettypes, count, &pbase_dir, fribidi_levels);
 
         if (level == 0) {
                 /* error */
@@ -336,6 +336,14 @@ long RingView::paragraph(long row)
         if (level == 1 || (rtl && level == 2)) {
                 /* Fast shortcut for LTR-only and RTL-only paragraphs. */
                 return explicit_paragraph (row_orig, rtl);
+        }
+
+        /* Silly FriBidi API of fribidi_reorder_line()... It reorders whatever values we give to it,
+         * and it would be super convenient for us to pass the logical columns of the terminal.
+         * However, we can't figure out the embedding levels then. So this feature is quite useless.
+         * Set up the trivial mapping for fribidi, and to the mapping manually in fribidi_to_terminal below. */
+        for (fl = 0; fl < count; fl++) {
+                fribidi_map[fl] = fl;
         }
 
         /* Reshuffle line by line. */
@@ -353,18 +361,20 @@ long RingView::paragraph(long row)
                 if (row_data == nullptr)
                         break;
 
-                /* fribidi_reorder_line() conveniently reorders arbitrary numbers we pass as the map.
-                 * Use the logical position to save us from headaches when encountering fragments. */
-                k = lines[line];
-                for (j = 0; j < m_width && j < row_data->len; j++) {
-                        cell = _vte_row_data_get (row_data, j);
+                /* Map from FriBidi's to terminal's logical position, see the detailed explanation above. */
+                // FIXME this is valid in C++, not just a gcc extension, correct? Or should we call g_newa()?
+                FriBidiStrIndex fribidi_to_terminal[lines[line + 1] - lines[line]];
+                fl = 0;
+                for (tl = 0; tl < m_width && tl < row_data->len; tl++) {
+                        cell = _vte_row_data_get (row_data, tl);
                         if (cell->attr.fragment())
                                 continue;
 
-                        fribidi_map[k++] = j;
+                        fribidi_to_terminal[fl] = tl;
+                        fl++;
                 }
 
-                g_assert_cmpint (k, ==, lines[line + 1]);
+                g_assert_cmpint (fl, ==, lines[line + 1] - lines[line]);
 
                 // FIXME is it okay to run the BiDi algorithm without the combining accents?
                 // If we need to preserve them then we need to have a bigger fribidi_chars array,
@@ -391,64 +401,65 @@ long RingView::paragraph(long row)
                 }
 
                 /* Copy to our realm. Proceed in visual order.*/
-                v = 0;
+                tv = 0;
                 if (rtl) {
                         /* Unused cells on the left for RTL paragraphs */
                         int unused = MAX(m_width - row_data->len, 0);
-                        for (; v < unused; v++) {
-                                map[v].vis2log = m_width - 1 - v;
-                                map[v].vis_rtl = TRUE;
+                        for (; tv < unused; tv++) {
+                                map[tv].vis2log = m_width - 1 - tv;
+                                map[tv].vis_rtl = TRUE;
                         }
                 }
-                for (j = lines[line]; j < lines[line + 1]; j++) {
+                for (fv = lines[line]; fv < lines[line + 1]; fv++) {
                         /* Inflate fribidi's result by inserting fragments. */
-                        l = fribidi_map[j];
-                        cell = _vte_row_data_get (row_data, l);
+                        fl = fribidi_map[fv];
+                        tl = fribidi_to_terminal[fl - lines[line]];
+                        cell = _vte_row_data_get (row_data, tl);
                         g_assert (!cell->attr.fragment());
                         g_assert (cell->attr.columns() > 0);
-                        if (fribidi_levels[l] % 2 == 0) {
+                        if (fribidi_levels[fl] % 2 == 0) {
                                 /* LTR character directionality. */
                                 for (col = 0; col < cell->attr.columns(); col++) {
-                                        map[v].vis2log = l;
-                                        map[v].vis_rtl = FALSE;
-                                        v++;
-                                        l++;
+                                        map[tv].vis2log = tl;
+                                        map[tv].vis_rtl = FALSE;
+                                        tv++;
+                                        tl++;
                                 }
                         } else {
                                 /* RTL character directionality. Map fragments in reverse order. */
                                 for (col = 0; col < cell->attr.columns(); col++) {
-                                        map[v + col].vis2log = l + cell->attr.columns() - 1 - col;
-                                        map[v + col].vis_rtl = TRUE;
+                                        map[tv + col].vis2log = tl + cell->attr.columns() - 1 - col;
+                                        map[tv + col].vis_rtl = TRUE;
                                 }
-                                v += cell->attr.columns();
-                                l += cell->attr.columns();
+                                tv += cell->attr.columns();
+                                tl += cell->attr.columns();
                         }
                 }
                 if (!rtl) {
                         /* Unused cells on the right for LTR paragraphs */
-                        g_assert_cmpint (v, ==, MIN (row_data->len, m_width));
-                        for (; v < m_width; v++) {
-                                map[v].vis2log = v;
-                                map[v].vis_rtl = FALSE;
+                        g_assert_cmpint (tv, ==, MIN (row_data->len, m_width));
+                        for (; tv < m_width; tv++) {
+                                map[tv].vis2log = tv;
+                                map[tv].vis_rtl = FALSE;
                         }
                 }
-                g_assert_cmpint (v, ==, m_width);
+                g_assert_cmpint (tv, ==, m_width);
 
                 /* From vis2log create the log2vis mapping too.
                  * In debug mode assert that we have a bijective mapping. */
                 if (_vte_debug_on (VTE_DEBUG_BIDI)) {
-                        for (l = 0; l < m_width; l++) {
-                                map[l].log2vis = -1;
+                        for (tl = 0; tl < m_width; tl++) {
+                                map[tl].log2vis = -1;
                         }
                 }
 
-                for (v = 0; v < m_width; v++) {
-                        map[map[v].vis2log].log2vis = v;
+                for (tv = 0; tv < m_width; tv++) {
+                        map[map[tv].vis2log].log2vis = tv;
                 }
 
                 if (_vte_debug_on (VTE_DEBUG_BIDI)) {
-                        for (l = 0; l < m_width; l++) {
-                                g_assert_cmpint (map[l].log2vis, !=, -1);
+                        for (tl = 0; tl < m_width; tl++) {
+                                g_assert_cmpint (map[tl].log2vis, !=, -1);
                         }
                 }
 
