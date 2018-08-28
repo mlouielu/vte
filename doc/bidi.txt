@@ -10,7 +10,8 @@ transcribed to English (“Shalom” abbreviated to occupy the same width).[m
 All words, except for subsection titles under explicit modes, should show up
 in human readable order.
 
-Boxes should all show up nicely.
+At box tests the reference rendering is upside down, so you should get nice
+squares everywhere.
 
                                 ┌──────────────┐
 ────────────────────────────────┤ Implicit LTR ├────────────────────────────────
