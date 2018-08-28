@@ -9146,7 +9146,7 @@ Terminal::paint_cursor()
 {
 	struct _vte_draw_text_request item;
         vte::grid::row_t drow;
-        vte::grid::column_t col;
+        vte::grid::column_t col, viscol;
         int width, height, cursor_width;
         guint style = 0;
         guint fore, back, deco;
@@ -9192,6 +9192,7 @@ Terminal::paint_cursor()
 
         /* Find the first cell of the character "under" the cursor.
          * This is for CJK.  For TAB, paint the cursor where it really is. */
+        VteRowData const *row_data = find_row_data(drow);
         bidicellmap const *bidimap = m_ringview.get_row_map(drow);
 
 	auto cell = find_charcell(col, drow);
@@ -9201,10 +9202,13 @@ Terminal::paint_cursor()
 	}
 
 	/* Draw the cursor. */
+        viscol = bidimap[col].log2vis;
 	item.c = (cell && cell->c) ? cell->c : ' ';
 	item.columns = item.c == '\t' ? 1 : cell ? cell->attr.columns() : 1;
-	item.x = bidimap[col].log2vis * width;
+        item.x = (viscol - (bidimap[viscol].vis_rtl ? cell->attr.columns() - 1 : 0)) * width;
 	item.y = row_to_pixel(drow);
+        item.mirror = bidimap[viscol].vis_rtl;
+        item.box_mirror = (row_data && (row_data->attr.bidi_flags & VTE_BIDI_BOX_MIRROR));
 	if (cell && cell->c != 0) {
 		style = _vte_draw_get_style(cell->attr.bold(), cell->attr.italic());
 	}
