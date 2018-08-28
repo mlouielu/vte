@@ -9205,7 +9205,7 @@ Terminal::paint_cursor()
         viscol = bidimap[col].log2vis;
 	item.c = (cell && cell->c) ? cell->c : ' ';
 	item.columns = item.c == '\t' ? 1 : cell ? cell->attr.columns() : 1;
-        item.x = (viscol - (bidimap[viscol].vis_rtl ? cell->attr.columns() - 1 : 0)) * width;
+        item.x = (viscol - ((cell && bidimap[viscol].vis_rtl) ? cell->attr.columns() - 1 : 0)) * width;
 	item.y = row_to_pixel(drow);
         item.mirror = bidimap[viscol].vis_rtl;
         item.box_mirror = (row_data && (row_data->attr.bidi_flags & VTE_BIDI_BOX_MIRROR));
