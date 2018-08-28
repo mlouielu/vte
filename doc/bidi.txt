@@ -66,7 +66,7 @@ squares everywhere.
 
 [01mShlm01 ⸤Shlm02⸣ Shlm03 Hello01 ⸤Hello02⸣ Hello03[m
                                 [32mHello01 ⸤Hello02⸣ Hello03 03oi7w ⸢02oi7w⸥ 01oi7w[m
-z[36m[3 Sשָׁלוֹם01 ⸤שָׁלוֹם02⸣ שָׁלוֹם03 Hello01 ⸤Hello02⸣ Hello03[0 S[m
+[36m[3 Sשָׁלוֹם01 ⸤שָׁלוֹם02⸣ שָׁלוֹם03 Hello01 ⸤Hello02⸣ Hello03[0 S[m
 
 [01mParagraph with wrong direction (should look broken)[m
 [32mw Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor[m
