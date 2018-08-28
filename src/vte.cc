@@ -249,6 +249,13 @@ Terminal::invalidate_rows(vte::grid::row_t row_start,
                           row_start, row_end);
 	_vte_debug_print (VTE_DEBUG_WORK, "?");
 
+        // HACK for BiDi: Always invalidate everything.
+        // In fact we'd need to invalidate the entire implicit paragraph.
+	if (TRUE) {
+		invalidate_all();
+		return;
+	}
+
         /* Scrolled back, visible parts didn't change. */
         if (row_start > last_displayed_row())
                 return;
