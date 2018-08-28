@@ -9193,7 +9193,6 @@ Terminal::paint_cursor()
         /* Find the first cell of the character "under" the cursor.
          * This is for CJK.  For TAB, paint the cursor where it really is. */
         VteRowData const *row_data = find_row_data(drow);
-        bidicellmap const *bidimap = m_ringview.get_row_map(drow);
 
 	auto cell = find_charcell(col, drow);
         while (cell != NULL && cell->attr.fragment() && cell->c != '\t' && col > 0) {
@@ -9202,12 +9201,12 @@ Terminal::paint_cursor()
 	}
 
 	/* Draw the cursor. */
-        viscol = bidimap[col].log2vis;
+        viscol = m_ringview.log2vis(drow, col);
 	item.c = (cell && cell->c) ? cell->c : ' ';
 	item.columns = item.c == '\t' ? 1 : cell ? cell->attr.columns() : 1;
-        item.x = (viscol - ((cell && bidimap[viscol].vis_rtl) ? cell->attr.columns() - 1 : 0)) * width;
+        item.x = (viscol - ((cell && m_ringview.vis_is_rtl(drow, viscol)) ? cell->attr.columns() - 1 : 0)) * width;
 	item.y = row_to_pixel(drow);
-        item.mirror = bidimap[viscol].vis_rtl;
+        item.mirror = m_ringview.vis_is_rtl(drow, viscol);
         item.box_mirror = (row_data && (row_data->attr.bidi_flags & VTE_BIDI_BOX_MIRROR));
 	if (cell && cell->c != 0) {
 		style = _vte_draw_get_style(cell->attr.bold(), cell->attr.italic());
