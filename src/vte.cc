@@ -9234,7 +9234,7 @@ Terminal::paint_cursor()
                         stem_width = (int) (((float) (m_char_ascent + m_char_descent)) * m_cursor_aspect_ratio + 0.5);
                         stem_width = CLAMP (stem_width, VTE_LINE_WIDTH, m_cell_width);
 
-                        if (row_data && (row_data->attr.bidi_flags & VTE_BIDI_RTL))
+                        if (row_data && (row_data->attr.bidi_flags & VTE_BIDI_RTL))  // FIXME needs to use the autodetected paragraph direction!
                                 x += m_cell_width - stem_width;
 
                         _vte_draw_fill_rectangle(m_draw,
