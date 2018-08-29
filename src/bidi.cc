@@ -30,6 +30,87 @@
 
 using namespace vte::base;
 
+BidiRow::BidiRow()
+{
+        m_width_alloc = 128;
+
+        m_log2vis = (vte::grid::column_t *) g_malloc (sizeof (vte::grid::column_t) * m_width_alloc);
+        m_vis2log = (vte::grid::column_t *) g_malloc (sizeof (vte::grid::column_t) * m_width_alloc);
+        m_vis_rtl = (guint8 *) g_malloc (sizeof (guint8) * m_width_alloc);
+}
+
+BidiRow::~BidiRow()
+{
+        g_free (m_log2vis);
+        g_free (m_vis2log);
+        g_free (m_vis_rtl);
+}
+
+void BidiRow::set_width(vte::grid::column_t width)
+{
+        if (G_UNLIKELY (width > m_width_alloc)) {
+                while (width > m_width_alloc) {
+                        m_width_alloc *= 2;
+                }
+                m_log2vis = (vte::grid::column_t *) g_realloc (m_log2vis, sizeof (vte::grid::column_t) * m_width_alloc);
+                m_vis2log = (vte::grid::column_t *) g_realloc (m_vis2log, sizeof (vte::grid::column_t) * m_width_alloc);
+                m_vis_rtl = (guint8 *) g_realloc (m_vis_rtl, sizeof (guint8) * m_width_alloc);
+        }
+
+        m_width = width;
+}
+
+/* Converts from logical to visual column. Offscreen columns are mirrored
+ * for RTL lines, e.g. (assuming 80 columns) -1 <=> 80, -2 <=> 81 etc. */
+vte::grid::column_t BidiRow::log2vis(vte::grid::column_t col) const
+{
+        if (G_LIKELY (col >= 0 && col < m_width)) {
+                return m_log2vis[col];
+        } else {
+                return m_base_rtl ? m_width - 1 - col : col;
+        }
+}
+
+/* Converts from visual to logical column. Offscreen columns are mirrored
+ * for RTL lines, e.g. (assuming 80 columns) -1 <=> 80, -2 <=> 81 etc. */
+vte::grid::column_t BidiRow::vis2log(vte::grid::column_t col) const
+{
+        if (G_LIKELY (col >= 0 && col < m_width)) {
+                return m_vis2log[col];
+        } else {
+                return m_base_rtl ? m_width - 1 - col : col;
+        }
+}
+
+/* Whether the cell at the given visual position has RTL directionality.
+ * For offscreen columns the line's direction is returned. */
+bool BidiRow::vis_is_rtl(vte::grid::column_t col) const
+{
+        if (G_LIKELY (col >= 0 && col < m_width)) {
+                return m_vis_rtl[col];
+        } else {
+                return m_base_rtl;
+        }
+}
+
+/* Whether the cell at the given logical position has RTL directionality.
+ * For offscreen columns the line's direction is returned. */
+bool BidiRow::log_is_rtl(vte::grid::column_t col) const
+{
+        if (G_LIKELY (col >= 0 && col < m_width)) {
+                col = m_log2vis[col];
+                return m_vis_rtl[col];
+        } else {
+                return m_base_rtl;
+        }
+}
+
+bool BidiRow::base_is_rtl() const
+{
+        return m_base_rtl;
+}
+
+
 RingView::RingView()
 {
         m_ring = nullptr;
@@ -37,50 +118,45 @@ RingView::RingView()
         m_start = m_len = m_width = 0;
 
         m_height_alloc = 32;
-        m_width_alloc = 128;
 
-        m_bidirows = (bidirow *) g_malloc (sizeof (bidirow) * m_height_alloc);
+        m_bidirows.resize(m_height_alloc);
         for (int i = 0; i < m_height_alloc; i++) {
-                m_bidirows[i].map = (bidicellmap *) g_malloc (sizeof (bidicellmap) * m_width_alloc);
+                m_bidirows[i] = new BidiRow();
         }
 }
 
 RingView::~RingView()
 {
-        for (int i = 0; i < m_height_alloc; i++)
-                g_free (m_bidirows[i].map);
-        g_free (m_bidirows);
+        for (int i = 0; i < m_height_alloc; i++) {
+                delete m_bidirows[i];
+        }
 }
 
-void RingView::set_ring(Ring *r)
+void RingView::set_ring(Ring *ring)
 {
-        m_ring = r;
+        m_ring = ring;
 }
 
-void RingView::set_width(long w)
+void RingView::set_width(vte::grid::column_t width)
 {
-        if (G_UNLIKELY (w > m_width_alloc)) {
-                while (w > m_width_alloc) {
-                        m_width_alloc *= 2;
-                }
-                for (int i = 0; i < m_height_alloc; i++) {
-                        m_bidirows[i].map = (bidicellmap *) g_realloc (m_bidirows[i].map, sizeof (bidicellmap) * m_width_alloc);
-                }
+        for (int i = 0; i < m_height_alloc; i++) {
+                m_bidirows[i]->set_width(width);
         }
 
-        m_width = w;
+        m_width = width;
 }
 
-void RingView::set_rows(long s, long l)
+void RingView::set_rows(vte::grid::row_t s, vte::grid::row_t l)
 {
         if (G_UNLIKELY (l > m_height_alloc)) {
                 int i = m_height_alloc;
                 while (l > m_height_alloc) {
                         m_height_alloc *= 2;
                 }
-                m_bidirows = (bidirow *) g_realloc (m_bidirows, sizeof (bidirow) * m_height_alloc);
+                m_bidirows.resize(m_height_alloc);
                 for (; i < m_height_alloc; i++) {
-                        m_bidirows[i].map = (bidicellmap *) g_malloc (sizeof (bidicellmap) * m_width_alloc);
+                        m_bidirows[i] = new BidiRow();
+                        m_bidirows[i]->set_width(m_width);
                 }
         }
 
@@ -90,7 +166,7 @@ void RingView::set_rows(long s, long l)
 
 void RingView::update()
 {
-        long i = m_start;
+        vte::grid::row_t i = m_start;
         const VteRowData *row_data = m_ring->index(m_start);
 
         if (row_data->attr.bidi_flags & VTE_BIDI_IMPLICIT) {
@@ -104,91 +180,40 @@ void RingView::update()
         }
 }
 
-bidicellmap *RingView::get_row_map(long row)  // FIXME remove this?
+BidiRow const* RingView::get_row_map(vte::grid::row_t row) const
 {
         g_assert_cmpint (row, >=, m_start);
         g_assert_cmpint (row, <, m_start + m_len);
-        return m_bidirows[row - m_start].map;
+        return m_bidirows[row - m_start];
 }
 
-/* Converts from logical to visual column. Offscreen columns are mirrored
- * for RTL lines, e.g. (assuming 80 columns) -1 <=> 80, -2 <=> 81 etc. */
-long RingView::log2vis(long row, long col)
+BidiRow* RingView::get_row_map_writable(vte::grid::row_t row)
 {
         g_assert_cmpint (row, >=, m_start);
         g_assert_cmpint (row, <, m_start + m_len);
-        bidirow *brow = &m_bidirows[row - m_start];
-        if (G_LIKELY (col >= 0 && col < m_width)) {
-                return brow->map[col].log2vis;
-        } else {
-                return brow->rtl ? m_width - 1 - col : col;
-        }
-}
-
-/* Converts from visual to logical column. Offscreen columns are mirrored
- * for RTL lines, e.g. (assuming 80 columns) -1 <=> 80, -2 <=> 81 etc. */
-long RingView::vis2log(long row, long col)
-{
-        g_assert_cmpint (row, >=, m_start);
-        g_assert_cmpint (row, <, m_start + m_len);
-        bidirow *brow = &m_bidirows[row - m_start];
-        if (G_LIKELY (col >= 0 && col < m_width)) {
-                return brow->map[col].vis2log;
-        } else {
-                return brow->rtl ? m_width - 1 - col : col;
-        }
-}
-
-/* Whether the cell at the given visual position has RTL directionality.
- * For offscreen columns the line's direction is returned. */
-bool RingView::vis_is_rtl(long row, long col)
-{
-        g_assert_cmpint (row, >=, m_start);
-        g_assert_cmpint (row, <, m_start + m_len);
-        bidirow *brow = &m_bidirows[row - m_start];
-        if (G_LIKELY (col >= 0 && col < m_width)) {
-                return brow->map[col].vis_rtl;
-        } else {
-                return brow->rtl;
-        }
-}
-
-/* Whether the cell at the given logical position has RTL directionality.
- * For offscreen columns the line's direction is returned. */
-bool RingView::log_is_rtl(long row, long col)
-{
-        g_assert_cmpint (row, >=, m_start);
-        g_assert_cmpint (row, <, m_start + m_len);
-        bidirow *brow = &m_bidirows[row - m_start];
-        if (G_LIKELY (col >= 0 && col < m_width)) {
-                col = brow->map[col].log2vis;
-                return brow->map[col].vis_rtl;
-        } else {
-                return brow->rtl;
-        }
+        return m_bidirows[row - m_start];
 }
 
 /* Set up the mapping according to explicit mode for a given line. */
-void RingView::explicit_line(long row, bool rtl)
+void RingView::explicit_line(vte::grid::row_t row, bool rtl)
 {
         int i;
-        bidicellmap *map;
 
         if (G_UNLIKELY (row < m_start || row >= m_start + m_len))
                 return;
 
-        m_bidirows[row - m_start].rtl = rtl;
-        map = m_bidirows[row - m_start].map;
+        BidiRow *bidirow = get_row_map_writable(row);
+        bidirow->m_base_rtl = rtl;
 
         if (G_UNLIKELY (rtl)) {
                 for (i = 0; i < m_width; i++) {
-                        map[i].log2vis = map[i].vis2log = m_width - 1 - i;
-                        map[i].vis_rtl = TRUE;
+                        bidirow->m_log2vis[i] = bidirow->m_vis2log[i] = m_width - 1 - i;
+                        bidirow->m_vis_rtl[i] = TRUE;
                 }
         } else {
                 for (i = 0; i < m_width; i++) {
-                        map[i].log2vis = map[i].vis2log = i;
-                        map[i].vis_rtl = FALSE;
+                        bidirow->m_log2vis[i] = bidirow->m_vis2log[i] = i;
+                        bidirow->m_vis_rtl[i] = FALSE;
                 }
         }
 }
@@ -196,7 +221,7 @@ void RingView::explicit_line(long row, bool rtl)
 /* Set up the mapping according to explicit mode, for all the lines
  * of a paragraph beginning at the given line.
  * Returns the row number after the paragraph or viewport (whichever ends first). */
-long RingView::explicit_paragraph(long row, bool rtl)
+vte::grid::row_t RingView::explicit_paragraph(vte::grid::row_t row, bool rtl)
 {
         const VteRowData *row_data;
 
@@ -214,9 +239,9 @@ long RingView::explicit_paragraph(long row, bool rtl)
  * Returns -1 if have to walk backwards too much. */
 /* FIXME this could be much cheaper, we don't need to read the actual rows (text_stream),
  * we only need the soft_wrapped flag which is stored in row_stream. Needs method in ring. */
-long RingView::find_paragraph(long row)
+vte::grid::row_t RingView::find_paragraph(vte::grid::row_t row)
 {
-        long row_stop = row - VTE_BIDI_PARAGRAPH_LENGTH_MAX;
+        vte::grid::row_t row_stop = row - VTE_BIDI_PARAGRAPH_LENGTH_MAX;
         const VteRowData *row_data;
 
         while (row-- > row_stop) {
@@ -231,7 +256,7 @@ long RingView::find_paragraph(long row)
 
 /* Figure out the mapping for the paragraph starting at the given row.
  * Returns the row number after the paragraph or viewport (whichever ends first). */
-long RingView::paragraph(long row)
+vte::grid::row_t RingView::paragraph(vte::grid::row_t row)
 {
         const VteRowData *row_data;
 
@@ -241,7 +266,7 @@ long RingView::paragraph(long row)
         bool autodir;
         FriBidiParType pbase_dir;
         FriBidiLevel level;
-        bidicellmap *map;
+        BidiRow *bidirow;
 #endif /* WITH_FRIBIDI */
 
         row_data = m_ring->index(row);
@@ -354,8 +379,8 @@ long RingView::paragraph(long row)
                 row = m_start;
         }
         while (row < m_start + m_len) {
-                m_bidirows[row - m_start].rtl = rtl;
-                map = m_bidirows[row - m_start].map;
+                bidirow = get_row_map_writable(row);
+                bidirow->m_base_rtl = rtl;
 
                 row_data = m_ring->index(row);
                 if (row_data == nullptr)
@@ -406,8 +431,8 @@ long RingView::paragraph(long row)
                         /* Unused cells on the left for RTL paragraphs */
                         int unused = MAX(m_width - row_data->len, 0);
                         for (; tv < unused; tv++) {
-                                map[tv].vis2log = m_width - 1 - tv;
-                                map[tv].vis_rtl = TRUE;
+                                bidirow->m_vis2log[tv] = m_width - 1 - tv;
+                                bidirow->m_vis_rtl[tv] = TRUE;
                         }
                 }
                 for (fv = lines[line]; fv < lines[line + 1]; fv++) {
@@ -420,16 +445,16 @@ long RingView::paragraph(long row)
                         if (FRIBIDI_LEVEL_IS_RTL(fribidi_levels[fl])) {
                                 /* RTL character directionality. Map fragments in reverse order. */
                                 for (col = 0; col < cell->attr.columns(); col++) {
-                                        map[tv + col].vis2log = tl + cell->attr.columns() - 1 - col;
-                                        map[tv + col].vis_rtl = TRUE;
+                                        bidirow->m_vis2log[tv + col] = tl + cell->attr.columns() - 1 - col;
+                                        bidirow->m_vis_rtl[tv + col] = TRUE;
                                 }
                                 tv += cell->attr.columns();
                                 tl += cell->attr.columns();
                         } else {
                                 /* LTR character directionality. */
                                 for (col = 0; col < cell->attr.columns(); col++) {
-                                        map[tv].vis2log = tl;
-                                        map[tv].vis_rtl = FALSE;
+                                        bidirow->m_vis2log[tv] = tl;
+                                        bidirow->m_vis_rtl[tv] = FALSE;
                                         tv++;
                                         tl++;
                                 }
@@ -439,8 +464,8 @@ long RingView::paragraph(long row)
                         /* Unused cells on the right for LTR paragraphs */
                         g_assert_cmpint (tv, ==, MIN (row_data->len, m_width));
                         for (; tv < m_width; tv++) {
-                                map[tv].vis2log = tv;
-                                map[tv].vis_rtl = FALSE;
+                                bidirow->m_vis2log[tv] = tv;
+                                bidirow->m_vis_rtl[tv] = FALSE;
                         }
                 }
                 g_assert_cmpint (tv, ==, m_width);
@@ -449,17 +474,17 @@ long RingView::paragraph(long row)
                  * In debug mode assert that we have a bijective mapping. */
                 if (_vte_debug_on (VTE_DEBUG_BIDI)) {
                         for (tl = 0; tl < m_width; tl++) {
-                                map[tl].log2vis = -1;
+                                bidirow->m_log2vis[tl] = -1;
                         }
                 }
 
                 for (tv = 0; tv < m_width; tv++) {
-                        map[map[tv].vis2log].log2vis = tv;
+                        bidirow->m_log2vis[bidirow->m_vis2log[tv]] = tv;
                 }
 
                 if (_vte_debug_on (VTE_DEBUG_BIDI)) {
                         for (tl = 0; tl < m_width; tl++) {
-                                g_assert_cmpint (map[tl].log2vis, !=, -1);
+                                g_assert_cmpint (bidirow->m_log2vis[tl], !=, -1);
                         }
                 }
 
@@ -475,6 +500,7 @@ next_line:
 
 #endif /* !WITH_FRIBIDI */
 }
+
 
 gboolean vte_bidi_get_mirror_char (gunichar ch, gboolean mirror_box_drawing, gunichar *mirrored_ch)
 {
