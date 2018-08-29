@@ -97,7 +97,7 @@ private:
 
         vte::grid::row_t m_height_alloc;
 
-        BidiRow* get_row_map_writable(vte::grid::row_t row);
+        BidiRow* get_row_map_writable(vte::grid::row_t row) const;
 
         void explicit_line(vte::grid::row_t row, bool rtl);
         vte::grid::row_t explicit_paragraph(vte::grid::row_t row, bool rtl);

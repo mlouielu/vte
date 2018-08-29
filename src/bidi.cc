@@ -83,7 +83,7 @@ vte::grid::column_t BidiRow::vis2log(vte::grid::column_t col) const
 }
 
 /* Whether the cell at the given visual position has RTL directionality.
- * For offscreen columns the line's direction is returned. */
+ * For offscreen columns the line's base direction is returned. */
 bool BidiRow::vis_is_rtl(vte::grid::column_t col) const
 {
         if (G_LIKELY (col >= 0 && col < m_width)) {
@@ -94,7 +94,7 @@ bool BidiRow::vis_is_rtl(vte::grid::column_t col) const
 }
 
 /* Whether the cell at the given logical position has RTL directionality.
- * For offscreen columns the line's direction is returned. */
+ * For offscreen columns the line's base direction is returned. */
 bool BidiRow::log_is_rtl(vte::grid::column_t col) const
 {
         if (G_LIKELY (col >= 0 && col < m_width)) {
@@ -105,6 +105,7 @@ bool BidiRow::log_is_rtl(vte::grid::column_t col) const
         }
 }
 
+/* Whether the line's base direction is RTL. */
 bool BidiRow::base_is_rtl() const
 {
         return m_base_rtl;
@@ -147,11 +148,11 @@ void RingView::set_width(vte::grid::column_t width)
         m_width = width;
 }
 
-void RingView::set_rows(vte::grid::row_t s, vte::grid::row_t l)
+void RingView::set_rows(vte::grid::row_t start, vte::grid::row_t len)
 {
-        if (G_UNLIKELY (l > m_height_alloc)) {
+        if (G_UNLIKELY (len > m_height_alloc)) {
                 int i = m_height_alloc;
-                while (l > m_height_alloc) {
+                while (len > m_height_alloc) {
                         m_height_alloc *= 2;
                 }
                 m_bidirows = (BidiRow **) g_realloc (m_bidirows, sizeof (BidiRow *) * m_height_alloc);
@@ -161,8 +162,8 @@ void RingView::set_rows(vte::grid::row_t s, vte::grid::row_t l)
                 }
         }
 
-        m_start = s;
-        m_len = l;
+        m_start = start;
+        m_len = len;
 }
 
 void RingView::update()
@@ -173,7 +174,7 @@ void RingView::update()
         if (row_data->attr.bidi_flags & VTE_BIDI_IMPLICIT) {
                 i = find_paragraph(m_start);
                 if (i == -1) {
-                        i = explicit_paragraph(m_start, !!(row_data->attr.bidi_flags & VTE_BIDI_RTL));
+                        i = explicit_paragraph(m_start, row_data->attr.bidi_flags & VTE_BIDI_RTL);
                 }
         }
         while (i < m_start + m_len) {
@@ -188,7 +189,7 @@ BidiRow const* RingView::get_row_map(vte::grid::row_t row) const
         return m_bidirows[row - m_start];
 }
 
-BidiRow* RingView::get_row_map_writable(vte::grid::row_t row)
+BidiRow* RingView::get_row_map_writable(vte::grid::row_t row) const
 {
         g_assert_cmpint (row, >=, m_start);
         g_assert_cmpint (row, <, m_start + m_len);
@@ -259,32 +260,27 @@ vte::grid::row_t RingView::find_paragraph(vte::grid::row_t row)
  * Returns the row number after the paragraph or viewport (whichever ends first). */
 vte::grid::row_t RingView::paragraph(vte::grid::row_t row)
 {
-        const VteRowData *row_data;
+        const VteRowData *row_data = m_ring->index(row);
+        if (row_data == nullptr) {
+                return explicit_paragraph(row, FALSE);
+        }
 
-#ifdef WITH_FRIBIDI
+#ifndef WITH_FRIBIDI
+        return explicit_paragraph(row, row_data->attr.bidi_flags & VTE_BIDI_RTL);
+#else
         const VteCell *cell;
         bool rtl;
         bool autodir;
         FriBidiParType pbase_dir;
         FriBidiLevel level;
         BidiRow *bidirow;
-#endif /* WITH_FRIBIDI */
-
-        row_data = m_ring->index(row);
-        if (row_data == nullptr) {
-                return explicit_paragraph(row, FALSE);
-        }
-
-#ifndef WITH_FRIBIDI
-        return explicit_paragraph(row, !!(row_data->attr.bidi_flags & VTE_BIDI_RTL));
-#else
 
         if (!(row_data->attr.bidi_flags & VTE_BIDI_IMPLICIT)) {
-                return explicit_paragraph(row, !!(row_data->attr.bidi_flags & VTE_BIDI_RTL));
+                return explicit_paragraph(row, row_data->attr.bidi_flags & VTE_BIDI_RTL);
         }
 
-        rtl = !!(row_data->attr.bidi_flags & VTE_BIDI_RTL);
-        autodir = !!(row_data->attr.bidi_flags & VTE_BIDI_AUTO);
+        rtl = row_data->attr.bidi_flags & VTE_BIDI_RTL;
+        autodir = row_data->attr.bidi_flags & VTE_BIDI_AUTO;
 
         int lines[VTE_BIDI_PARAGRAPH_LENGTH_MAX + 1];
         lines[0] = 0;
@@ -498,7 +494,6 @@ next_line:
         }
 
         return row;
-
 #endif /* !WITH_FRIBIDI */
 }
 
