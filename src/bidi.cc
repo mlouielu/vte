@@ -119,7 +119,7 @@ RingView::RingView()
 
         m_height_alloc = 32;
 
-        m_bidirows.resize(m_height_alloc);
+        m_bidirows = (BidiRow **) g_malloc (sizeof (BidiRow *) * m_height_alloc);
         for (int i = 0; i < m_height_alloc; i++) {
                 m_bidirows[i] = new BidiRow();
         }
@@ -130,6 +130,7 @@ RingView::~RingView()
         for (int i = 0; i < m_height_alloc; i++) {
                 delete m_bidirows[i];
         }
+        g_free (m_bidirows);
 }
 
 void RingView::set_ring(Ring *ring)
@@ -153,7 +154,7 @@ void RingView::set_rows(vte::grid::row_t s, vte::grid::row_t l)
                 while (l > m_height_alloc) {
                         m_height_alloc *= 2;
                 }
-                m_bidirows.resize(m_height_alloc);
+                m_bidirows = (BidiRow **) g_realloc (m_bidirows, sizeof (BidiRow *) * m_height_alloc);
                 for (; i < m_height_alloc; i++) {
                         m_bidirows[i] = new BidiRow();
                         m_bidirows[i]->set_width(m_width);

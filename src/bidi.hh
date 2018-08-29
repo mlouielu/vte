@@ -19,7 +19,6 @@
 #pragma once
 
 #include <glib.h>
-#include <vector>
 
 #include "ring.hh"
 #include "vterowdata.hh"
@@ -90,7 +89,7 @@ public:
 private:
         Ring *m_ring;
 
-        std::vector<BidiRow *> m_bidirows;
+        BidiRow **m_bidirows;
 
         vte::grid::row_t m_start;
         vte::grid::row_t m_len;
