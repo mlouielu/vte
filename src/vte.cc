@@ -9235,12 +9235,23 @@ Terminal::paint_cursor()
                         stem_width = (int) (((float) (m_char_ascent + m_char_descent)) * m_cursor_aspect_ratio + 0.5);
                         stem_width = CLAMP (stem_width, VTE_LINE_WIDTH, m_cell_width);
 
-                        if (row_data && bidirow->base_is_rtl())
+                        // FIXME make an exception when the cursor is just after the last character:
+                        // show it next to the last character (wherever it appears due to BiDi) rather than
+                        // beyond the end of the string, as KDE/Qt does. Maybe not just for I-beam.
+
+                        if (row_data && bidirow->vis_is_rtl(viscol))
                                 x += m_cell_width - stem_width;
 
                         _vte_draw_fill_rectangle(m_draw,
                                                  x, y + m_char_padding.top, stem_width, m_char_ascent + m_char_descent,
                                                  &bg, VTE_DRAW_OPAQUE);
+
+                        if (focus && row_data && bidirow->has_foreign())
+                                _vte_draw_fill_rectangle(m_draw,
+                                                         bidirow->vis_is_rtl(viscol) ? x - stem_width : x + stem_width, y + m_char_padding.top,
+                                                         stem_width, stem_width,
+                                                         &bg, VTE_DRAW_OPAQUE);
+
 			break;
                 }
 

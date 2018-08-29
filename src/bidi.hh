@@ -49,6 +49,7 @@ public:
         bool log_is_rtl(vte::grid::column_t col) const;
         bool vis_is_rtl(vte::grid::column_t col) const;
         bool base_is_rtl() const;
+        bool has_foreign() const;
 
 private:
         void set_width(vte::grid::column_t width);
@@ -61,6 +62,7 @@ private:
         guint8 *m_vis_rtl;
 
         guint8 m_base_rtl: 1;
+        guint8 m_has_foreign: 1;
 };
 
 

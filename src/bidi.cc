@@ -116,6 +116,13 @@ bool BidiRow::base_is_rtl() const
         return m_base_rtl;
 }
 
+/* Whether the paragraph contains a foreign directionality character.
+ * This is used in the cursor, showing the character's directionality. */
+bool BidiRow::has_foreign() const
+{
+        return m_has_foreign;
+}
+
 
 RingView::RingView()
 {
@@ -205,12 +212,13 @@ void RingView::explicit_line(vte::grid::row_t row, bool rtl)
 
         BidiRow *bidirow = get_row_map_writable(row);
         bidirow->m_base_rtl = rtl;
+        bidirow->m_has_foreign = false;
 
         if (G_UNLIKELY (rtl)) {
                 bidirow->set_width(m_width);
                 for (i = 0; i < m_width; i++) {
                         bidirow->m_log2vis[i] = bidirow->m_vis2log[i] = m_width - 1 - i;
-                        bidirow->m_vis_rtl[i] = TRUE;
+                        bidirow->m_vis_rtl[i] = true;
                 }
         } else {
                 /* Shortcut: bidirow->m_width == 0 might denote a fully LTR line,
@@ -261,7 +269,7 @@ vte::grid::row_t RingView::paragraph(vte::grid::row_t row)
 {
         const VteRowData *row_data = m_ring->index(row);
         if (row_data == nullptr) {
-                return explicit_paragraph(row, FALSE);
+                return explicit_paragraph(row, false);
         }
 
 #ifndef WITH_FRIBIDI
@@ -377,6 +385,7 @@ vte::grid::row_t RingView::paragraph(vte::grid::row_t row)
         while (row < m_start + m_len) {
                 bidirow = get_row_map_writable(row);
                 bidirow->m_base_rtl = rtl;
+                bidirow->m_has_foreign = true;
                 bidirow->set_width(m_width);
 
                 row_data = m_ring->index(row);
@@ -413,12 +422,14 @@ vte::grid::row_t RingView::paragraph(vte::grid::row_t row)
                 if (level == 0) {
                         /* error, what should we do? */
                         explicit_line (row, rtl);
+                        bidirow->m_has_foreign = true;
                         goto next_line;
                 }
 
                 if (level == 1 || (rtl && level == 2)) {
                         /* Fast shortcut for LTR-only and RTL-only lines. */
                         explicit_line (row, rtl);
+                        bidirow->m_has_foreign = true;
                         goto next_line;
                 }
 
@@ -429,7 +440,7 @@ vte::grid::row_t RingView::paragraph(vte::grid::row_t row)
                         int unused = MAX(m_width - row_data->len, 0);
                         for (; tv < unused; tv++) {
                                 bidirow->m_vis2log[tv] = m_width - 1 - tv;
-                                bidirow->m_vis_rtl[tv] = TRUE;
+                                bidirow->m_vis_rtl[tv] = true;
                         }
                 }
                 for (fv = lines[line]; fv < lines[line + 1]; fv++) {
@@ -443,7 +454,7 @@ vte::grid::row_t RingView::paragraph(vte::grid::row_t row)
                                 /* RTL character directionality. Map fragments in reverse order. */
                                 for (col = 0; col < cell->attr.columns(); col++) {
                                         bidirow->m_vis2log[tv + col] = tl + cell->attr.columns() - 1 - col;
-                                        bidirow->m_vis_rtl[tv + col] = TRUE;
+                                        bidirow->m_vis_rtl[tv + col] = true;
                                 }
                                 tv += cell->attr.columns();
                                 tl += cell->attr.columns();
@@ -451,7 +462,7 @@ vte::grid::row_t RingView::paragraph(vte::grid::row_t row)
                                 /* LTR character directionality. */
                                 for (col = 0; col < cell->attr.columns(); col++) {
                                         bidirow->m_vis2log[tv] = tl;
-                                        bidirow->m_vis_rtl[tv] = FALSE;
+                                        bidirow->m_vis_rtl[tv] = false;
                                         tv++;
                                         tl++;
                                 }
@@ -462,7 +473,7 @@ vte::grid::row_t RingView::paragraph(vte::grid::row_t row)
                         g_assert_cmpint (tv, ==, MIN (row_data->len, m_width));
                         for (; tv < m_width; tv++) {
                                 bidirow->m_vis2log[tv] = tv;
-                                bidirow->m_vis_rtl[tv] = FALSE;
+                                bidirow->m_vis_rtl[tv] = false;
                         }
                 }
                 g_assert_cmpint (tv, ==, m_width);
