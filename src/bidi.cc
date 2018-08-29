@@ -291,7 +291,7 @@ vte::grid::row_t RingView::paragraph(vte::grid::row_t row)
         unsigned int col;
 
         /* The buffer size assumes that combining chars are omitted. It's an overkill, but convenient solution. */
-        // FIXME this is valid in C++, not just a gcc extension, correct? Or should we call g_newa()?
+        // FIXME VLA is a gcc extension, use g_newa() instead
         FriBidiChar fribidi_chars[VTE_BIDI_PARAGRAPH_LENGTH_MAX * m_width];
 
         /* Extract the paragraph's contents, omitting unused and fragment cells. */
@@ -332,7 +332,7 @@ vte::grid::row_t RingView::paragraph(vte::grid::row_t row)
         }
 
         /* Run the BiDi algorithm on the paragraph to get the embedding levels. */
-        // FIXME this is valid in C++, not just a gcc extension, correct? Or should we call g_newa()?
+        // FIXME VLA is a gcc extension, use g_newa() instead
         FriBidiCharType fribidi_chartypes[count];
         FriBidiBracketType fribidi_brackettypes[count];
         FriBidiLevel fribidi_levels[count];
@@ -384,7 +384,7 @@ vte::grid::row_t RingView::paragraph(vte::grid::row_t row)
                         break;
 
                 /* Map from FriBidi's to terminal's logical position, see the detailed explanation above. */
-                // FIXME this is valid in C++, not just a gcc extension, correct? Or should we call g_newa()?
+                // FIXME VLA is a gcc extension, use g_newa() instead
                 FriBidiStrIndex fribidi_to_terminal[lines[line + 1] - lines[line]];
                 fl = 0;
                 for (tl = 0; tl < m_width && tl < row_data->len; tl++) {
