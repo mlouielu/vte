@@ -32,11 +32,13 @@ using namespace vte::base;
 
 BidiRow::BidiRow()
 {
-        m_width_alloc = 128;
+        m_width = 0;
 
-        m_log2vis = (vte::grid::column_t *) g_malloc (sizeof (vte::grid::column_t) * m_width_alloc);
-        m_vis2log = (vte::grid::column_t *) g_malloc (sizeof (vte::grid::column_t) * m_width_alloc);
-        m_vis_rtl = (guint8 *) g_malloc (sizeof (guint8) * m_width_alloc);
+        /* These will be initialized / allocated on demand, when some RTL is encountered. */
+        m_width_alloc = 0;
+        m_log2vis = nullptr;
+        m_vis2log = nullptr;
+        m_vis_rtl = nullptr;
 }
 
 BidiRow::~BidiRow()
@@ -49,6 +51,9 @@ BidiRow::~BidiRow()
 void BidiRow::set_width(vte::grid::column_t width)
 {
         if (G_UNLIKELY (width > m_width_alloc)) {
+                if (m_width_alloc == 0) {
+                        m_width_alloc = 128;
+                }
                 while (width > m_width_alloc) {
                         m_width_alloc *= 2;
                 }
@@ -64,7 +69,7 @@ void BidiRow::set_width(vte::grid::column_t width)
  * for RTL lines, e.g. (assuming 80 columns) -1 <=> 80, -2 <=> 81 etc. */
 vte::grid::column_t BidiRow::log2vis(vte::grid::column_t col) const
 {
-        if (G_LIKELY (col >= 0 && col < m_width)) {
+        if (col >= 0 && col < m_width) {
                 return m_log2vis[col];
         } else {
                 return m_base_rtl ? m_width - 1 - col : col;
@@ -75,7 +80,7 @@ vte::grid::column_t BidiRow::log2vis(vte::grid::column_t col) const
  * for RTL lines, e.g. (assuming 80 columns) -1 <=> 80, -2 <=> 81 etc. */
 vte::grid::column_t BidiRow::vis2log(vte::grid::column_t col) const
 {
-        if (G_LIKELY (col >= 0 && col < m_width)) {
+        if (col >= 0 && col < m_width) {
                 return m_vis2log[col];
         } else {
                 return m_base_rtl ? m_width - 1 - col : col;
@@ -86,7 +91,7 @@ vte::grid::column_t BidiRow::vis2log(vte::grid::column_t col) const
  * For offscreen columns the line's base direction is returned. */
 bool BidiRow::vis_is_rtl(vte::grid::column_t col) const
 {
-        if (G_LIKELY (col >= 0 && col < m_width)) {
+        if (col >= 0 && col < m_width) {
                 return m_vis_rtl[col];
         } else {
                 return m_base_rtl;
@@ -97,7 +102,7 @@ bool BidiRow::vis_is_rtl(vte::grid::column_t col) const
  * For offscreen columns the line's base direction is returned. */
 bool BidiRow::log_is_rtl(vte::grid::column_t col) const
 {
-        if (G_LIKELY (col >= 0 && col < m_width)) {
+        if (col >= 0 && col < m_width) {
                 col = m_log2vis[col];
                 return m_vis_rtl[col];
         } else {
@@ -117,7 +122,6 @@ RingView::RingView()
         m_ring = nullptr;
 
         m_start = m_len = m_width = 0;
-
         m_height_alloc = 32;
 
         m_bidirows = (BidiRow **) g_malloc (sizeof (BidiRow *) * m_height_alloc);
@@ -141,10 +145,6 @@ void RingView::set_ring(Ring *ring)
 
 void RingView::set_width(vte::grid::column_t width)
 {
-        for (int i = 0; i < m_height_alloc; i++) {
-                m_bidirows[i]->set_width(width);
-        }
-
         m_width = width;
 }
 
@@ -158,7 +158,6 @@ void RingView::set_rows(vte::grid::row_t start, vte::grid::row_t len)
                 m_bidirows = (BidiRow **) g_realloc (m_bidirows, sizeof (BidiRow *) * m_height_alloc);
                 for (; i < m_height_alloc; i++) {
                         m_bidirows[i] = new BidiRow();
-                        m_bidirows[i]->set_width(m_width);
                 }
         }
 
@@ -208,15 +207,15 @@ void RingView::explicit_line(vte::grid::row_t row, bool rtl)
         bidirow->m_base_rtl = rtl;
 
         if (G_UNLIKELY (rtl)) {
+                bidirow->set_width(m_width);
                 for (i = 0; i < m_width; i++) {
                         bidirow->m_log2vis[i] = bidirow->m_vis2log[i] = m_width - 1 - i;
                         bidirow->m_vis_rtl[i] = TRUE;
                 }
         } else {
-                for (i = 0; i < m_width; i++) {
-                        bidirow->m_log2vis[i] = bidirow->m_vis2log[i] = i;
-                        bidirow->m_vis_rtl[i] = FALSE;
-                }
+                /* Shortcut: bidirow->m_width == 0 might denote a fully LTR line,
+                 * m_width_alloc might even be 0 along with log2vis and friends being nullptr in this case. */
+                bidirow->set_width(0);
         }
 }
 
@@ -378,6 +377,7 @@ vte::grid::row_t RingView::paragraph(vte::grid::row_t row)
         while (row < m_start + m_len) {
                 bidirow = get_row_map_writable(row);
                 bidirow->m_base_rtl = rtl;
+                bidirow->set_width(m_width);
 
                 row_data = m_ring->index(row);
                 if (row_data == nullptr)
