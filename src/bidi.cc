@@ -303,7 +303,7 @@ vte::grid::row_t RingView::paragraph(vte::grid::row_t row)
         FriBidiChar fribidi_chars[VTE_BIDI_PARAGRAPH_LENGTH_MAX * m_width];
 
         /* Extract the paragraph's contents, omitting unused and fragment cells. */
-        while (row < m_start + m_len) {
+        while (row < _vte_ring_next(m_ring)) {
                 row_data = m_ring->index(row);
                 if (row_data == nullptr)
                         break;
