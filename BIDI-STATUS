@@ -1,0 +1,48 @@
+Done:
+- Implicit (level 1) and Explicit (a small subset only) modes (SM / RM 8).
+- Overall LTR or RTL direction (SPD 0 / 3).
+- Possibility to autodetect paragraph direction (DECSET / DECRST 2501).
+- Possibility to make box drawing characters mirrorable (DECSET / DECRST 2500).
+- I-Beam cursor shows the character's resolved directionality when the
+  paragraph has a foreign directionality character.
+- VTE_DEBUG=bidi highlights characters with resolved RTL directionality.
+- Test file.
+- Configure flag.
+
+Bugs:
+- CJK might be only partially painted on mouse highlight (vte #26).
+- Upon a reset, the directionality of cells isn't properly restored.
+- The way the modes apply to paragraphs, and what happens when a paragraph
+  is split or two paragraphs are joined is just a first hack, needs to be
+  reviewed, adjusted, fixed properly.
+
+Missing from first release:
+- Adjust mouse operations.
+- Adjust the preedit box.
+- The entire screen is always invalidated. Have some more fine grained
+  solution (see also vte #26).
+- Probably we'd need to make Erase in Display (Below or All) sequences turn
+  the previous line to hard wrapped, requiring to keep one more line in the
+  ring's writable area.
+- Design doc review & publishing, public tracking issue.
+- Brief summary about the design and implemented features in the source tree.
+- Code cleanup and review, of course.
+
+Planned future improvements:
+- Shaping.
+- Right-align RTL glyphs.
+- Implicit mode level 2 (handling BiDi control characters).
+- Mirror the glyphs that don't have mirrored counterpart.
+- Play with other possibilities for placing the cursor (especially when it's
+  at the end of the logical line).
+- Keyboard arrow swapping.
+- Remember some lines that are no longer user-accessible as they scroll out,
+  to properly BiDi the still remaining part of that paragraph.
+- Possibility for default RTL directionality?
+- API (for what exactly)?
+
+Not planned at all:
+- Operating on the presentation component (DCSM reset).
+- BiDi in explicit mode by transferring the embedding levels (SDS, SRS...).
+- Escape sequences that modify the emulation behavior (SIMD...)
+- Other silly escape sequences (SCP...).
