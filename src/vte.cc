@@ -9240,7 +9240,7 @@ Terminal::paint_cursor()
                         // beyond the end of the string, as KDE/Qt does. Maybe not just for I-beam.
 
                         if (row_data && bidirow->vis_is_rtl(viscol))
-                                x += m_cell_width - stem_width;
+                                x += item.columns * m_cell_width - stem_width;
 
                         _vte_draw_fill_rectangle(m_draw,
                                                  x, y + m_char_padding.top, stem_width, m_char_ascent + m_char_descent,
