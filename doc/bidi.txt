@@ -77,6 +77,11 @@ squares everywhere.
                                                                       [32ma＜z  n＞x[m
 [36m[3 Sא＜ת  a＜z[0 S[m
 
+[01mOld Hungarian Rovásírás[m
+(font at https://github.com/OldHungarian/old-hungarian-font)
+                                                         [32mΛᛩHTΛᛩMↄH ↄ4TH4Λↄ¤ᛝ +ΛↃ[m
+[36m[3 S𐲛𐳖𐳇 𐲏𐳪𐳙𐳍𐳀𐳢𐳐𐳀𐳙 𐲢𐳛𐳮𐳁𐳤𐳑𐳢𐳁𐳤[0 S[m
+
 [01mBox[m
                                                         [32m╭─╮   a┌─┐z  n╔═╗x   ┏━┓[m[3 S
 [36m┛━┗   א╝═╚ת  a└─┘z   ╯─╰[m[0 S
