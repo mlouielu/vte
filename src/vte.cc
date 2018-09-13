@@ -3021,7 +3021,7 @@ Terminal::maybe_apply_bidi_attributes()
 
         auto row = m_screen->cursor.row;
 
-        if (row > 0) {
+        if (row > _vte_ring_delta (m_screen->row_data)) {
                 const VteRowData *rowdata = _vte_ring_index (m_screen->row_data, row - 1);
                 if (rowdata != nullptr && rowdata->attr.soft_wrapped) {
                         _vte_debug_print(VTE_DEBUG_BIDI,
