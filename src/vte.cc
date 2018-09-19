@@ -5877,6 +5877,14 @@ Terminal::hyperlink_hilite_update()
         if (!m_allow_hyperlink)
                 return;
 
+
+        // FIXME find a nicer place for these
+        m_ringview.set_ring (m_screen->row_data);
+        m_ringview.set_rows ((long) m_screen->scroll_delta, m_row_count + 3);
+        m_ringview.set_width (m_column_count);
+        m_ringview.update ();
+
+
         _vte_debug_print (VTE_DEBUG_HYPERLINK,
                          "hyperlink_hilite_update\n");
 
@@ -5985,6 +5993,14 @@ Terminal::match_hilite_update()
 
         glong col = pos.x / m_cell_width;
         glong row = pixel_to_row(pos.y);
+
+
+        // FIXME find a nicer place for these
+        m_ringview.set_ring (m_screen->row_data);
+        m_ringview.set_rows ((long) m_screen->scroll_delta, m_row_count + 3);
+        m_ringview.set_width (m_column_count);
+        m_ringview.update ();
+
 
         /* BiDi: convert to logical column. */
         vte::base::BidiRow const* bidirow = m_ringview.get_row_map(confine_grid_row(row));
@@ -9659,7 +9675,6 @@ Terminal::widget_scroll(GdkEventScroll *event)
 	int button;
 
         GdkEvent *base_event = reinterpret_cast<GdkEvent*>(event);
-        auto rowcol = confined_grid_coords_from_event(base_event);
 
 	read_modifiers(base_event);
 
@@ -9693,6 +9708,14 @@ Terminal::widget_scroll(GdkEventScroll *event)
 		_vte_debug_print(VTE_DEBUG_EVENTS,
 				"Scroll application by %d lines, smooth scroll delta set back to %f\n",
 				cnt, m_mouse_smooth_scroll_delta);
+
+                // FIXME find a nicer place for these – rowcol below needs an updated ringview to do BiDi
+                m_ringview.set_ring (m_screen->row_data);
+                m_ringview.set_rows ((long) m_screen->scroll_delta, m_row_count + 3);
+                m_ringview.set_width (m_column_count);
+                m_ringview.update ();
+
+                auto rowcol = confined_grid_coords_from_event(base_event);
 
 		button = cnt > 0 ? 5 : 4;
 		if (cnt < 0)

@@ -20,7 +20,6 @@ Bugs:
   reviewed, adjusted, fixed properly.
 - Copying text in rectangle mode.
 - Crashes when mouse selection initiates scrolling.
-- Crashes with quitting mc using mouse.
 
 Missing from first release:
 - Adjust mouse reporting.
