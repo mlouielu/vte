@@ -21,7 +21,6 @@ Bugs:
 - Copying text in rectangle mode.
 
 Missing from first release:
-- Adjust mouse reporting.
 - The entire screen is always invalidated. Have some more fine grained
   solution (see also vte #26).
 - Probably we'd need to make Erase in Display (Below or All) sequences turn
