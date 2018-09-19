@@ -12,7 +12,6 @@ Done:
 - Configure flag.
 
 Bugs:
-- CJK might be only partially painted on mouse highlight (vte #26).
 - Upon a reset, the directionality of cells isn't properly restored.
 - The way the modes apply to paragraphs, and what happens when a paragraph
   is split or two paragraphs are joined is just a first hack, needs to be
@@ -49,3 +48,15 @@ Not planned at all:
 - BiDi in explicit mode by transferring the embedding levels (SDS, SRS...).
 - Escape sequences that modify the emulation behavior (SIMD...).
 - Other silly escape sequences (SCP...).
+
+Useful aliases:
+  alias ltr='echo -ne "\e[0 S"'
+  alias rtl='echo -ne "\e[3 S"'
+  alias implicit='echo -ne "\e[8h"'
+  alias explicit='echo -ne "\e[8l"'
+  alias bidi='echo -ne "\e[8h"'    # same as implicit
+  alias nobidi='echo -ne "\e[8l"'  # same as explicit
+  alias box-mirror='echo -ne "\e[?2500h"'
+  alias box-normal='echo -ne "\e[?2500l"'
+  alias auto='echo -ne "\e[?2501h"'
+  alias noauto='echo -ne "\e[?2501l"'
