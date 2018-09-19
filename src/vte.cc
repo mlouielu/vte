@@ -1502,7 +1502,20 @@ Terminal::grid_coords_from_view_coords(vte::view::coords const& pos) const
 
         vte::grid::row_t row = pixel_to_row(pos.y);
 
+        /* BiDi: convert to logical column. */
+        vte::base::BidiRow const* bidirow = m_ringview.get_row_map(confine_grid_row(row));
+        col = bidirow->vis2log(col);
+
         return vte::grid::coords(row, col);
+}
+
+vte::grid::row_t
+Terminal::confine_grid_row(vte::grid::row_t const& row) const
+{
+        auto first_row = first_displayed_row();
+        auto last_row = last_displayed_row();
+
+        return CLAMP(row, first_row, last_row);
 }
 
 /*
@@ -5973,6 +5986,10 @@ Terminal::match_hilite_update()
         glong col = pos.x / m_cell_width;
         glong row = pixel_to_row(pos.y);
 
+        /* BiDi: convert to logical column. */
+        vte::base::BidiRow const* bidirow = m_ringview.get_row_map(confine_grid_row(row));
+        col = bidirow->vis2log(col);
+
 	_vte_debug_print(VTE_DEBUG_EVENTS,
                          "Match hilite update (%ld, %ld) -> %ld, %ld\n",
                          pos.x, pos.y, col, row);
@@ -9042,7 +9059,7 @@ Terminal::draw_rows(VteScreen *screen_,
                         determine_colors(cell, selected, &nfore, &nback, &ndeco);
 
                         nhilite = (nhyperlink && cell->attr.hyperlink_idx == m_hyperlink_hover_idx) ||
-                                  (!nhyperlink && m_match != nullptr && m_match_span.contains(row, col));
+                                  (!nhyperlink && m_match != nullptr && m_match_span.contains(row, bidirow->vis2log(col)));
 
                         /* See if it no longer fits the run. */
                         if (item_count > 0 &&

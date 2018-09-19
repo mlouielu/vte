@@ -7,6 +7,8 @@ Done:
   paragraph has a foreign directionality character.
 - Mouse highlighting (logical in normal modes, visual in rectangle mode).
 - Copying text in logical modes.
+- Mouse reporting.
+- Regex match and explicit hyperlink underlining on hover.
 - VTE_DEBUG=bidi highlights characters with resolved RTL directionality.
 - Test file.
 - Configure flag.
@@ -17,6 +19,8 @@ Bugs:
   is split or two paragraphs are joined is just a first hack, needs to be
   reviewed, adjusted, fixed properly.
 - Copying text in rectangle mode.
+- Crashes when mouse selection initiates scrolling.
+- Crashes with quitting mc using mouse.
 
 Missing from first release:
 - Adjust mouse reporting.
