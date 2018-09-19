@@ -1566,34 +1566,46 @@ Terminal::confine_grid_coords(vte::grid::coords const& rowcol) const
 
 /*
  * Track mouse click and drag positions (the "origin" and "last" coordinates) with half cell accuracy,
- * that is, know whether the event occurred over the left or right half of the cell.
+ * that is, know whether the event occurred over the left/start or right/end half of the cell.
  * This is required because some selection modes care about the cell over which the event occurred,
  * while some care about the closest boundary between cells.
  *
  * Storing the actual view coordinates would become problematic when the font size changes (bug 756058),
  * and would cause too much work when the mouse moves within the half cell.
  *
- * Left margin or anything further to the left is denoted by column -1's right half,
- * right margin or anything further to the right is denoted by column m_column_count's left half.
+ * Left/start margin or anything further to the left/start is denoted by column -1's right half,
+ * right/end margin or anything further to the right/end is denoted by column m_column_count's left half.
+ *
+ * BiDi: returns logical (start/end) position for normal selection modes, visual (left/right) position for block mode.
  */
 vte::grid::halfcoords
 Terminal::selection_grid_halfcoords_from_view_coords(vte::view::coords const& pos) const
 {
         vte::grid::row_t row = pixel_to_row(pos.y);
-        vte::grid::halfcolumn_t halfcolumn;
+        vte::grid::column_t col;
+        vte::grid::half_t half;
 
         if (pos.x < 0) {
-                halfcolumn.set_column(-1);
-                halfcolumn.set_half(1);
+                col = -1;
+                half = 1;
         } else if (pos.x >= m_column_count * m_cell_width) {
-                halfcolumn.set_column(m_column_count);
-                halfcolumn.set_half(0);
+                col = m_column_count;
+                half = 0;
         } else {
-                halfcolumn.set_column(pos.x / m_cell_width);
-                halfcolumn.set_half((pos.x * 2 / m_cell_width) % 2);
+                col = pos.x / m_cell_width;
+                half = (pos.x * 2 / m_cell_width) % 2;
         }
 
-        return { row, halfcolumn };
+        if (!m_selection_block_mode) {
+                /* BiDi: convert from visual to logical half column. */
+                vte::base::BidiRow const* bidirow = m_ringview.get_row_map(row);
+
+                if (bidirow->vis_is_rtl(col))
+                        half = 1 - half;
+                col = bidirow->vis2log(col);
+        }
+
+        return { row, vte::grid::halfcolumn_t(col, half) };
 }
 
 /*
@@ -1609,6 +1621,16 @@ Terminal::selection_maybe_swap_endpoints(vte::view::coords const& pos)
 {
         if (m_selection_resolved.empty())
                 return;
+
+
+
+        // FIXME find a nicer place for these
+        m_ringview.set_ring (m_screen->row_data);
+        m_ringview.set_rows ((long) m_screen->scroll_delta, m_row_count + 3);
+        m_ringview.set_width (m_column_count);
+        m_ringview.update ();
+
+
 
         auto current = selection_grid_halfcoords_from_view_coords (pos);
 
@@ -5166,7 +5188,7 @@ Terminal::line_is_wrappable(vte::grid::row_t row) const
  * In block mode, similarly to char mode, we care about vertical character boundary. (This is somewhat
  * debatable, as results in asymmetrical behavior along the two axes: a rectangle can disappear by
  * becoming zero wide, but not zero high.) We cannot take care of CJKs at the endpoints now because CJKs
- * can cross the boundary in any included row. Taking care of them needs to go to cell_is_selected().
+ * can cross the boundary in any included row. Taking care of them needs to go to cell_is_selected_vis().
  * We don't care about used vs. unused cells either. The event coordinate is simply rounded to the
  * nearest vertical cell boundary.
  */
@@ -5450,6 +5472,16 @@ Terminal::modify_selection (vte::view::coords const& pos)
 {
         g_assert (m_selecting);
 
+
+
+        // FIXME find a nicer place for these
+        m_ringview.set_ring (m_screen->row_data);
+        m_ringview.set_rows ((long) m_screen->scroll_delta, m_row_count + 3);
+        m_ringview.set_width (m_column_count);
+        m_ringview.update ();
+
+
+
         auto current = selection_grid_halfcoords_from_view_coords (pos);
 
         if (current == m_selection_last)
@@ -5463,10 +5495,10 @@ Terminal::modify_selection (vte::view::coords const& pos)
         resolve_selection();
 }
 
-/* Check if a cell is selected or not. */
+/* Check if a cell is selected or not. BiDi: the coordinate is visual. */
 bool
-Terminal::cell_is_selected(vte::grid::column_t col,
-                                     vte::grid::row_t row) const
+Terminal::cell_is_selected_vis(vte::grid::column_t col,
+                               vte::grid::row_t row) const
 {
         if (m_selection_block_mode) {
                 /* In block mode, make sure CJKs and TABs aren't cut in half. */
@@ -5478,6 +5510,9 @@ Terminal::cell_is_selected(vte::grid::column_t col,
                 }
                 return m_selection_resolved.box_contains ({ row, col });
         } else {
+                /* BiDi: convert to logical column. */
+                vte::base::BidiRow const* bidirow = m_ringview.get_row_map(row);
+                col = bidirow->vis2log(col);
                 /* In normal modes, resolve_selection() made sure to generate such boundaries for m_selection_resolved. */
                 return m_selection_resolved.contains ({ row, col });
         }
@@ -6129,6 +6164,9 @@ Terminal::rgb_from_index(guint index,
 	}
 }
 
+// FIXMEegmont block mode doesn't work with BiDi, it won't be that easy.
+// We'll need to get the bidirow for areas not necessarily inside the current view.
+// Needs a bit of refactoring in bidi.cc.
 GString*
 Terminal::get_text(vte::grid::row_t start_row,
                              vte::grid::column_t start_col,
@@ -6681,6 +6719,16 @@ Terminal::start_selection (vte::view::coords const& pos,
 {
 	if (m_selection_block_mode)
 		type = selection_type_char;
+
+
+
+        // FIXME find a nicer place for these
+        m_ringview.set_ring (m_screen->row_data);
+        m_ringview.set_rows ((long) m_screen->scroll_delta, m_row_count + 3);
+        m_ringview.set_width (m_column_count);
+        m_ringview.update ();
+
+
 
         m_selection_origin = m_selection_last = selection_grid_halfcoords_from_view_coords(pos);
 
@@ -8904,7 +8952,7 @@ Terminal::draw_rows(VteScreen *screen_,
                         /* Get the first cell's contents. */
                         cell = row_data ? _vte_row_data_get_visual (row_data, bidirow, i) : nullptr;
                         /* Find the colors for this cell. */
-                        selected = cell_is_selected(i, row);
+                        selected = cell_is_selected_vis(i, row);
                         determine_colors(cell, selected, &fore, &back, &deco);
                         rtl = bidirow->vis_is_rtl(i);
 
@@ -8914,7 +8962,7 @@ Terminal::draw_rows(VteScreen *screen_,
                                 /* Resolve attributes to colors where possible and
                                  * compare visual attributes to the first character
                                  * in this chunk. */
-                                selected = cell_is_selected(j, row);
+                                selected = cell_is_selected_vis(j, row);
                                 determine_colors(cell, selected, &nfore, &nback, &ndeco);
                                 nrtl = bidirow->vis_is_rtl(j);
                                 if (nback != back || (_vte_debug_on (VTE_DEBUG_BIDI) && nrtl != rtl)) {
@@ -8990,7 +9038,7 @@ Terminal::draw_rows(VteScreen *screen_,
 
                         /* Find the colors for this cell. */
                         nattr = cell->attr.attr;
-                        selected = cell_is_selected(col, row);
+                        selected = cell_is_selected_vis(col, row);
                         determine_colors(cell, selected, &nfore, &nback, &ndeco);
 
                         nhilite = (nhyperlink && cell->attr.hyperlink_idx == m_hyperlink_hover_idx) ||
@@ -9213,7 +9261,7 @@ Terminal::paint_cursor()
 		style = _vte_draw_get_style(cell->attr.bold(), cell->attr.italic());
 	}
 
-	selected = cell_is_selected(col, drow);
+	selected = cell_is_selected_vis(viscol, drow);
         determine_cursor_colors(cell, selected, &fore, &back, &deco);
         rgb_from_index<8, 8, 8>(back, bg);
 

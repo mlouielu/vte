@@ -400,7 +400,7 @@ public:
         gboolean m_selecting_had_delta;
         gboolean m_selection_block_mode;  // FIXMEegmont move it into a 4th value in vte_selection_type?
         enum vte_selection_type m_selection_type;
-        vte::grid::halfcoords m_selection_origin, m_selection_last;
+        vte::grid::halfcoords m_selection_origin, m_selection_last;  /* BiDi: logical in normal modes, visual in m_selection_block_mode */
         vte::grid::span m_selection_resolved;
 
 	/* Clipboard data information. */
@@ -932,8 +932,8 @@ public:
         void resolve_selection();
         void selection_maybe_swap_endpoints(vte::view::coords const& pos);
         void modify_selection(vte::view::coords const& pos);
-        bool cell_is_selected(vte::grid::column_t col,
-                              vte::grid::row_t) const;
+        bool cell_is_selected_vis(vte::grid::column_t col,
+                                  vte::grid::row_t) const;
 
         void reset_default_attributes(bool reset_hyperlink);
 

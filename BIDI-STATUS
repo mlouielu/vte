@@ -5,6 +5,8 @@ Done:
 - Possibility to make box drawing characters mirrorable (DECSET / DECRST 2500).
 - I-Beam cursor shows the character's resolved directionality when the
   paragraph has a foreign directionality character.
+- Mouse highlighting (logical in normal modes, visual in rectangle mode).
+- Copying text in logical modes.
 - VTE_DEBUG=bidi highlights characters with resolved RTL directionality.
 - Test file.
 - Configure flag.
@@ -15,9 +17,10 @@ Bugs:
 - The way the modes apply to paragraphs, and what happens when a paragraph
   is split or two paragraphs are joined is just a first hack, needs to be
   reviewed, adjusted, fixed properly.
+- Copying text in rectangle mode.
 
 Missing from first release:
-- Adjust mouse operations.
+- Adjust mouse reporting.
 - Adjust the preedit box.
 - The entire screen is always invalidated. Have some more fine grained
   solution (see also vte #26).
@@ -44,5 +47,5 @@ Planned future improvements:
 Not planned at all:
 - Operating on the presentation component (DCSM reset).
 - BiDi in explicit mode by transferring the embedding levels (SDS, SRS...).
-- Escape sequences that modify the emulation behavior (SIMD...)
+- Escape sequences that modify the emulation behavior (SIMD...).
 - Other silly escape sequences (SCP...).
