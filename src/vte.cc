@@ -1611,7 +1611,7 @@ Terminal::selection_grid_halfcoords_from_view_coords(vte::view::coords const& po
 
         if (!m_selection_block_mode) {
                 /* BiDi: convert from visual to logical half column. */
-                vte::base::BidiRow const* bidirow = m_ringview.get_row_map(row);
+                vte::base::BidiRow const* bidirow = m_ringview.get_row_map(confine_grid_row(row));
 
                 if (bidirow->vis_is_rtl(col))
                         half = 1 - half;

@@ -19,7 +19,6 @@ Bugs:
   is split or two paragraphs are joined is just a first hack, needs to be
   reviewed, adjusted, fixed properly.
 - Copying text in rectangle mode.
-- Crashes when mouse selection initiates scrolling.
 
 Missing from first release:
 - Adjust mouse reporting.
