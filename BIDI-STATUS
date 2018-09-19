@@ -20,7 +20,6 @@ Bugs:
 
 Missing from first release:
 - Adjust mouse reporting.
-- Adjust the preedit box.
 - The entire screen is always invalidated. Have some more fine grained
   solution (see also vte #26).
 - Probably we'd need to make Erase in Display (Below or All) sequences turn
@@ -37,6 +36,7 @@ Planned future improvements:
 - Mirror the glyphs that don't have mirrored counterpart.
 - Play with other possibilities for placing the cursor (especially when it's
   at the end of the logical line).
+- Play with better placement of the preedit box.
 - Keyboard arrow swapping.
 - Remember some lines that are no longer user-accessible as they scroll out,
   to properly BiDi the still remaining part of that paragraph.

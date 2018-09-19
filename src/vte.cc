@@ -9383,11 +9383,18 @@ void
 Terminal::paint_im_preedit_string()
 {
 	int col, columns;
+	long row;
 	long width, height;
 	int i, len;
 
 	if (m_im_preedit.empty())
 		return;
+
+        /* Get the row's BiDi information. */
+        row = m_screen->cursor.row;
+        if (row < first_displayed_row() || row > last_displayed_row())
+                return;
+        vte::base::BidiRow const *bidirow = m_ringview.get_row_map(row);
 
 	/* Keep local copies of rendering information. */
 	width = m_cell_width;
@@ -9399,7 +9406,7 @@ Terminal::paint_im_preedit_string()
 
 	/* If the pre-edit string won't fit on the screen if we start
 	 * drawing it at the cursor's position, move it left. */
-        col = m_screen->cursor.col;
+        col = bidirow->log2vis(m_screen->cursor.col);
 	if (col + columns > m_column_count) {
 		col = MAX(0, m_column_count - columns);
 	}
@@ -9410,7 +9417,7 @@ Terminal::paint_im_preedit_string()
 		const char *preedit = m_im_preedit.c_str();
 		int preedit_cursor;
 
-		items = g_new(struct _vte_draw_text_request, len);
+		items = g_new0(struct _vte_draw_text_request, len);
 		for (i = columns = 0; i < len; i++) {
 			items[i].c = g_utf8_get_char(preedit);
                         items[i].columns = _vte_unichar_width(items[i].c,
