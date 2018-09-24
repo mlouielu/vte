@@ -5515,12 +5515,17 @@ Terminal::cell_is_selected_vis(vte::grid::column_t col,
 {
         if (m_selection_block_mode) {
                 /* In block mode, make sure CJKs and TABs aren't cut in half. */
+                /* BiDi: convert to logical column... */
+                vte::base::BidiRow const* bidirow = m_ringview.get_row_map(row);
+                col = bidirow->vis2log(col);
                 while (col > 0) {
                         VteCell const* cell = find_charcell(col, row);
                         if (!cell || !cell->attr.fragment())
                                 break;
                         col--;
                 }
+                /* ... and back to visual. */
+                col = bidirow->log2vis(col);
                 return m_selection_resolved.box_contains ({ row, col });
         } else {
                 /* BiDi: convert to logical column. */
