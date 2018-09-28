@@ -6202,9 +6202,6 @@ Terminal::rgb_from_index(guint index,
 	}
 }
 
-// FIXMEegmont block mode doesn't work with BiDi, it won't be that easy.
-// We'll need to get the bidirow for areas not necessarily inside the current view.
-// Needs a bit of refactoring in bidi.cc.
 GString*
 Terminal::get_text(vte::grid::row_t start_row,
                              vte::grid::column_t start_col,
@@ -6218,6 +6215,9 @@ Terminal::get_text(vte::grid::row_t start_row,
 	GString *string;
 	struct _VteCharAttributes attr;
 	vte::color::rgb fore, back;
+        vte::base::RingView *ringview = nullptr;
+        vte::base::BidiRow const *bidirow = nullptr;
+        vte::grid::column_t col_vis;
 
 	if (attributes)
 		g_array_set_size (attributes, 0);
@@ -6228,26 +6228,50 @@ Terminal::get_text(vte::grid::row_t start_row,
         if (start_col < 0)
                 start_col = 0;
 
-        vte::grid::column_t next_first_column = block ? start_col : 0;
-        vte::grid::column_t col = start_col;
+        if (block) {
+                /* Rectangular selection operates on the visual contents, not the logical.
+                 * m_ringview corresponds to the currently onscreen bits, therefore does not
+                 * necessarily include the entire selection.
+                 * Modifying m_ringview and then reverting would be a bit cumbersome,
+                 * creating a new one for the selection is cleaner. */
+                ringview = new vte::base::RingView();
+                ringview->set_ring(m_screen->row_data);
+                ringview->set_rows(start_row, end_row - start_row + 1);
+                ringview->set_width(m_column_count);
+                ringview->update();
+        }
+
+        vte::grid::column_t col = block ? 0 : start_col;
         vte::grid::row_t row;
-	for (row = start_row; row < end_row + 1; row++, col = next_first_column) {
+        for (row = start_row; row < end_row + 1; row++, col = 0) {
 		VteRowData const* row_data = find_row_data(row);
                 gsize last_empty, last_nonempty;
                 vte::grid::column_t last_emptycol, last_nonemptycol;
-                vte::grid::column_t line_last_column = (block || row == end_row) ? end_col : G_MAXLONG;
+                vte::grid::column_t line_last_column = (!block && row == end_row) ? end_col : m_column_count;
 
                 last_empty = last_nonempty = string->len;
                 last_emptycol = last_nonemptycol = -1;
 
 		attr.row = row;
-		attr.column = col;
+		attr.column = col;  // FIXME is attr.column supposed to contain logical or visual? What is it used for?
 		pcell = NULL;
 		if (row_data != NULL) {
+                        bidirow = ringview ? ringview->get_row_map(row) : nullptr;
                         while (col < line_last_column &&
                                (pcell = _vte_row_data_get (row_data, col))) {
 
-				attr.column = col;
+                                /* In block mode, we scan each row from its very beginning to its very end in logical order,
+                                 * and here filter out the characters that are visually outside of the block. */
+                                if (bidirow) {
+                                        col_vis = bidirow->log2vis(col);
+                                        // FIXME handle CJK and friends consistently with cell_is_selected().
+                                        if (col_vis < start_col || col_vis >= end_col) {
+                                                col++;
+                                                continue;
+                                        }
+                                }
+
+				attr.column = col;  // FIXME ditto
 
 				/* If it's not part of a multi-column character,
 				 * and passes the selection criterion, add it to
@@ -6345,6 +6369,8 @@ Terminal::get_text(vte::grid::row_t start_row,
 			vte_g_array_fill (attributes, &attr, string->len);
 		}
 	}
+
+        delete ringview;
 
 	/* Sanity check. */
         if (attributes != nullptr)

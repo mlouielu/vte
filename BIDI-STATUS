@@ -5,8 +5,8 @@ Done:
 - Possibility to make box drawing characters mirrorable (DECSET / DECRST 2500).
 - I-Beam cursor shows the character's resolved directionality when the
   paragraph has a foreign directionality character.
-- Mouse highlighting (logical in normal modes, visual in rectangle mode).
-- Copying text in logical modes.
+- Mouse highlighting, text copying (logical in normal modes, visual in
+  rectangle mode).
 - Mouse reporting.
 - Regex match and explicit hyperlink underlining on hover.
 - VTE_DEBUG=bidi highlights characters with resolved RTL directionality.
@@ -18,7 +18,6 @@ Bugs:
 - The way the modes apply to paragraphs, and what happens when a paragraph
   is split or two paragraphs are joined is just a first hack, needs to be
   reviewed, adjusted, fixed properly.
-- Copying text in rectangle mode.
 
 Missing from first release:
 - The entire screen is always invalidated. Have some more fine grained
