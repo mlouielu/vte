@@ -42,6 +42,7 @@ BidiRow::BidiRow()
         m_log2vis = nullptr;
         m_vis2log = nullptr;
         m_vis_rtl = nullptr;
+        m_vis_shaped_char = nullptr;
 }
 
 BidiRow::~BidiRow()
@@ -49,6 +50,7 @@ BidiRow::~BidiRow()
         g_free (m_log2vis);
         g_free (m_vis2log);
         g_free (m_vis_rtl);
+        g_free (m_vis_shaped_char);
 }
 
 void BidiRow::set_width(vte::grid::column_t width)
@@ -63,6 +65,7 @@ void BidiRow::set_width(vte::grid::column_t width)
                 m_log2vis = (vte::grid::column_t *) g_realloc (m_log2vis, sizeof (vte::grid::column_t) * m_width_alloc);
                 m_vis2log = (vte::grid::column_t *) g_realloc (m_vis2log, sizeof (vte::grid::column_t) * m_width_alloc);
                 m_vis_rtl = (guint8 *) g_realloc (m_vis_rtl, sizeof (guint8) * m_width_alloc);
+                m_vis_shaped_char = (gunichar *) g_realloc (m_vis_shaped_char, sizeof (gunichar) * m_width_alloc);
         }
 
         m_width = width;
@@ -111,6 +114,21 @@ bool BidiRow::log_is_rtl(vte::grid::column_t col) const
         } else {
                 return m_base_rtl;
         }
+}
+
+/* Get the shaped character (vteunistr) for the given visual position.
+ *
+ * The unshaped character (vteunistr) needs to be passed to this method because
+ * the BiDi component may not store it if no shaping was required, and does not
+ * store combining accents. This method takes care of preserving combining accents.
+ */
+vteunistr
+BidiRow::vis_get_shaped_char(vte::grid::column_t col, vteunistr s) const
+{
+        if (col >= m_width || m_vis_shaped_char[col] == 0)
+                return s;
+
+        return _vte_unistr_replace_base(s, m_vis_shaped_char[col]);
 }
 
 /* Whether the line's base direction is RTL. */
@@ -244,6 +262,7 @@ void RingView::explicit_line(vte::grid::row_t row, bool rtl)
                 for (i = 0; i < m_width; i++) {
                         bidirow->m_log2vis[i] = bidirow->m_vis2log[i] = m_width - 1 - i;
                         bidirow->m_vis_rtl[i] = true;
+                        bidirow->m_vis_shaped_char[i] = 0;
                 }
         } else {
                 /* Shortcut: bidirow->m_width == 0 might denote a fully LTR line,
@@ -308,6 +327,7 @@ vte::grid::row_t RingView::paragraph(vte::grid::row_t row)
         FriBidiChar *fribidi_chars;
         FriBidiCharType *fribidi_chartypes;
         FriBidiBracketType *fribidi_brackettypes;
+        FriBidiJoiningType *fribidi_joiningtypes;
         FriBidiLevel *fribidi_levels;
         FriBidiStrIndex *fribidi_map;
         FriBidiStrIndex *fribidi_to_term;
@@ -484,6 +504,7 @@ vte::grid::row_t RingView::paragraph(vte::grid::row_t row)
         /* Run the BiDi algorithm on the paragraph to get the embedding levels. */
         fribidi_chartypes = g_newa (FriBidiCharType, count);
         fribidi_brackettypes = g_newa (FriBidiBracketType, count);
+        fribidi_joiningtypes = g_newa (FriBidiJoiningType, count);
         fribidi_levels = g_newa (FriBidiLevel, count);
 
         pbase_dir = autodir ? (rtl ? FRIBIDI_PAR_WRTL : FRIBIDI_PAR_WLTR)
@@ -491,6 +512,7 @@ vte::grid::row_t RingView::paragraph(vte::grid::row_t row)
 
         fribidi_get_bidi_types (fribidi_chars, count, fribidi_chartypes);
         fribidi_get_bracket_types (fribidi_chars, count, fribidi_chartypes, fribidi_brackettypes);
+        fribidi_get_joining_types (fribidi_chars, count, fribidi_joiningtypes);
         level = fribidi_get_par_embedding_levels_ex (fribidi_chartypes, fribidi_brackettypes, count, &pbase_dir, fribidi_levels);
 
         if (level == 0) {
@@ -501,16 +523,36 @@ vte::grid::row_t RingView::paragraph(vte::grid::row_t row)
                 return explicit_paragraph (row_orig, rtl);
         }
 
+        /* Arabic shaping
+         *
+         * https://www.w3.org/TR/css-text-3/#word-break-shaping says:
+         * "When shaping scripts such as Arabic wrap [...] the characters must still be shaped (their joining forms chosen)
+         * as if the word were still whole."
+         *
+         * Also, FriBidi's Arabic shaping methods, as opposed to fribidi_reorder_line(), don't take an offset parameter.
+         * This is another weak sign that the desired behavior is to shape the entire paragraph before splitting to lines.
+         *
+         * We only perform shaping in implicit mode, for two reasons:
+         *
+         * Following the CSS logic, I think the sensible behavior for a partially visible word (e.g. at the margin of a
+         * text editor) is to use the joining/shaping form according to the entire word. Hence in explicit mode it must be
+         * the responsibility of the BiDi-aware application and not the terminal emulator to perform joining/shaping.
+         *
+         * And a technical limitation: FriBidi can only perform joining/shaping with the logical order as input, not with
+         * the visual order. We'd need to find another API, or do ugly workarounds, which I'd rather not. */
+        fribidi_join_arabic (fribidi_chartypes, count, fribidi_levels, fribidi_joiningtypes);
+        fribidi_shape_arabic (FRIBIDI_FLAGS_ARABIC, fribidi_levels, count, fribidi_joiningtypes, fribidi_chars);
+
         g_assert_cmpint (pbase_dir, !=, FRIBIDI_PAR_ON);
         /* For convenience, from now on this variable contains the resolved (i.e. possibly autodetected) value. */
         rtl = (pbase_dir == FRIBIDI_PAR_RTL || pbase_dir == FRIBIDI_PAR_WRTL);
 
-        if ((!rtl && level == 1) || (rtl && level == 2)) {
-                /* Fast shortcut for LTR-only and RTL-only paragraphs. */
+        if (!rtl && level == 1) {
+                /* Fast shortcut for LTR-only paragraphs. */
                 g_array_free (fribidi_chars_array, TRUE);
                 g_array_free (fribidi_map_array, TRUE);
                 g_array_free (fribidi_to_term_array, TRUE);
-                return explicit_paragraph (row_orig, rtl);
+                return explicit_paragraph (row_orig, false);
         }
 
         /* Reshuffle line by line. */
@@ -547,9 +589,9 @@ vte::grid::row_t RingView::paragraph(vte::grid::row_t row)
                         goto next_line;
                 }
 
-                if ((!rtl && level == 1) || (rtl && level == 2)) {
-                        /* Fast shortcut for LTR-only and RTL-only lines. */
-                        explicit_line (row, rtl);
+                if (!rtl && level == 1) {
+                        /* Fast shortcut for LTR-only lines. */
+                        explicit_line (row, false);
                         bidirow->m_has_foreign = true;
                         goto next_line;
                 }
@@ -562,6 +604,7 @@ vte::grid::row_t RingView::paragraph(vte::grid::row_t row)
                         for (; tv < unused; tv++) {
                                 bidirow->m_vis2log[tv] = m_width - 1 - tv;
                                 bidirow->m_vis_rtl[tv] = true;
+                                bidirow->m_vis_shaped_char[tv] = 0;
                         }
                 }
                 for (fv = lines[line]; fv < lines[line + 1]; fv++) {
@@ -578,6 +621,7 @@ vte::grid::row_t RingView::paragraph(vte::grid::row_t row)
                                 for (col = 0; col < cell->attr.columns(); col++) {
                                         bidirow->m_vis2log[tv + col] = tl + cell->attr.columns() - 1 - col;
                                         bidirow->m_vis_rtl[tv + col] = true;
+                                        bidirow->m_vis_shaped_char[tv + col] = fribidi_chars[fl];
                                 }
                                 tv += cell->attr.columns();
                                 tl += cell->attr.columns();
@@ -586,6 +630,7 @@ vte::grid::row_t RingView::paragraph(vte::grid::row_t row)
                                 for (col = 0; col < cell->attr.columns(); col++) {
                                         bidirow->m_vis2log[tv] = tl;
                                         bidirow->m_vis_rtl[tv] = false;
+                                        bidirow->m_vis_shaped_char[tv] = fribidi_chars[fl];
                                         tv++;
                                         tl++;
                                 }
@@ -597,6 +642,7 @@ vte::grid::row_t RingView::paragraph(vte::grid::row_t row)
                         for (; tv < m_width; tv++) {
                                 bidirow->m_vis2log[tv] = tv;
                                 bidirow->m_vis_rtl[tv] = false;
+                                bidirow->m_vis_shaped_char[tv] = 0;
                         }
                 }
                 g_assert_cmpint (tv, ==, m_width);

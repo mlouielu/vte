@@ -10,6 +10,7 @@ Done:
 - Mouse reporting.
 - Regex match and explicit hyperlink underlining on hover.
 - VTE_DEBUG=bidi highlights characters with resolved RTL directionality.
+- Arabic shaping using Unicode presentation forms.
 - Test file.
 - Configure flag.
 - Keyboard arrow swapping.
@@ -31,7 +32,7 @@ Missing from first release:
 - Code cleanup and review, of course.
 
 Planned future improvements:
-- Shaping.
+- Real shaping (harfbuzz?).
 - Right-align RTL glyphs.
 - Implicit mode level 2 (handling BiDi control characters).
 - Mirror the glyphs that don't have mirrored counterpart.

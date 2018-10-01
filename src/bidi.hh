@@ -49,6 +49,7 @@ public:
         vte::grid::column_t vis2log(vte::grid::column_t col) const;
         bool log_is_rtl(vte::grid::column_t col) const;
         bool vis_is_rtl(vte::grid::column_t col) const;
+        vteunistr vis_get_shaped_char(vte::grid::column_t col, vteunistr s) const;
         bool base_is_rtl() const;
         bool has_foreign() const;
 
@@ -61,6 +62,7 @@ private:
         vte::grid::column_t *m_log2vis;
         vte::grid::column_t *m_vis2log;
         guint8 *m_vis_rtl;
+        gunichar *m_vis_shaped_char;
 
         guint8 m_base_rtl: 1;
         guint8 m_has_foreign: 1;

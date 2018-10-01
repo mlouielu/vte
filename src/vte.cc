@@ -9191,7 +9191,7 @@ Terminal::draw_rows(VteScreen *screen_,
                         hilite = nhilite;
 
                         g_assert_cmpint (item_count, <, column_count);
-                        items[item_count].c = c;
+                        items[item_count].c = bidirow->vis_get_shaped_char(col, c);
                         items[item_count].columns = j - col;
                         items[item_count].x = (col - (bidirow->vis_is_rtl(col) ? j - col - 1 : 0)) * column_width;
                         items[item_count].y = y;
@@ -9334,7 +9334,7 @@ Terminal::paint_cursor()
 
 	/* Draw the cursor. */
         viscol = bidirow->log2vis(col);
-	item.c = (cell && cell->c) ? cell->c : ' ';
+	item.c = (cell && cell->c) ? bidirow->vis_get_shaped_char(viscol, cell->c) : ' ';
 	item.columns = item.c == '\t' ? 1 : cell ? cell->attr.columns() : 1;
         item.x = (viscol - ((cell && bidirow->vis_is_rtl(viscol)) ? cell->attr.columns() - 1 : 0)) * width;
 	item.y = row_to_pixel(drow);
