@@ -509,7 +509,13 @@ next_line:
 }
 
 
-gboolean vte_bidi_get_mirror_char (gunichar ch, gboolean mirror_box_drawing, gunichar *mirrored_ch)
+/* Find the mirrored counterpart of a codepoint, just like
+ * fribidi_get_mirror_char() or g_unichar_get_mirror_char() does.
+ * Two additions:
+ * - works with vteunistr, that is, preserves combining accents;
+ * - optionally mirrors box drawing characters.
+ */
+gboolean vte_bidi_get_mirror_char (vteunistr unistr, gboolean mirror_box_drawing, vteunistr *out)
 {
         static const unsigned char mirrored_2500[0x80] = {
                 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x10, 0x11, 0x12, 0x13,
@@ -521,18 +527,25 @@ gboolean vte_bidi_get_mirror_char (gunichar ch, gboolean mirror_box_drawing, gun
                 0x63, 0x5e, 0x5f, 0x60, 0x64, 0x65, 0x66, 0x67, 0x68, 0x69, 0x6a, 0x6b, 0x6c, 0x6e, 0x6d, 0x70,
                 0x6f, 0x72, 0x71, 0x73, 0x76, 0x75, 0x74, 0x77, 0x7a, 0x79, 0x78, 0x7b, 0x7e, 0x7d, 0x7c, 0x7f };
 
-        if (G_UNLIKELY (mirror_box_drawing && ch >= 0x2500 && ch < 0x2580)) {
-                gunichar mir = 0x2500 + mirrored_2500[ch - 0x2500];
-                if (mirrored_ch)
-                        *mirrored_ch = mir;
-                return mir == ch;
+        gunichar base_ch = _vte_unistr_get_base (unistr);
+        gunichar base_ch_mirrored = base_ch;
+
+        if (G_UNLIKELY (base_ch >= 0x2500 && base_ch < 0x2580)) {
+                if (G_UNLIKELY (mirror_box_drawing))
+                        base_ch_mirrored = 0x2500 + mirrored_2500[base_ch - 0x2500];
+        } else {
+#ifdef WITH_FRIBIDI
+                /* Prefer the FriBidi variant as that's more likely to be in sync with the rest of our BiDi stuff. */
+                fribidi_get_mirror_char (base_ch, &base_ch_mirrored);
+#else
+                /* Fall back to glib, so that we still get mirrored characters in explicit RTL mode without BiDi support. */
+                g_unichar_get_mirror_char (base_ch, &base_ch_mirrored);
+#endif
         }
 
-#ifdef WITH_FRIBIDI
-        /* Prefer the FriBidi variant as that's more likely to be in sync with the rest of our BiDi stuff. */
-        return fribidi_get_mirror_char (ch, mirrored_ch);
-#else
-        /* Fall back to glib, so that we still get mirrored characters in explicit RTL mode. */
-        return g_unichar_get_mirror_char (ch, mirrored_ch);
-#endif
+        vteunistr unistr_mirrored = _vte_unistr_replace_base (unistr, base_ch_mirrored);
+
+        if (out)
+                *out = unistr_mirrored;
+        return unistr_mirrored == unistr;
 }

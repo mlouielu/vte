@@ -23,6 +23,7 @@
 #include "ring.hh"
 #include "vterowdata.hh"
 #include "vtetypes.hh"
+#include "vteunistr.h"
 
 namespace vte {
 
@@ -113,6 +114,6 @@ private:
 
 G_BEGIN_DECLS
 
-gboolean vte_bidi_get_mirror_char (gunichar ch, gboolean mirror_box_drawing, gunichar *mirrored_ch);
+gboolean vte_bidi_get_mirror_char (vteunistr unistr, gboolean mirror_box_drawing, vteunistr *unistr_mirrored);
 
 G_END_DECLS
