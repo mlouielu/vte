@@ -160,6 +160,14 @@ MODE(VTE_BOX_DRAWING_MIRROR, 2500)
  */
 MODE(VTE_BIDI_AUTO, 2501)
 
+/*
+ * Whether to swap the Left and Right arrow keys if the cursor
+ * stands over an RTL paragraphs.
+ *
+ * The number choice is temporary.
+ */
+MODE(VTE_BIDI_SWAP_ARROW_KEYS, 2502)
+
 /* Not supported modes: */
 
 /* DEC */

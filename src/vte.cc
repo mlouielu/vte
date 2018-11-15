@@ -4959,6 +4959,39 @@ Terminal::widget_key_press(GdkEventKey *event)
 		/* If the above switch statement didn't do the job, try mapping
 		 * it to a literal or capability name. */
                 if (handled == FALSE) {
+                        /* In keyboard arrow swapping mode, the left and right arrows
+                         * are swapped if the cursor stands inside an RTL paragraph. */
+                        if (m_modes_private.VTE_BIDI_SWAP_ARROW_KEYS() &&
+                            (keyval == GDK_KEY_Left ||
+                             keyval == GDK_KEY_Right ||
+                             keyval == GDK_KEY_KP_Left ||
+                             keyval == GDK_KEY_KP_Right)) {
+                                /* m_ringview is for the onscreen contents and the cursor
+                                 * may be offscreen, so use a temporary ringview. */
+                                vte::base::RingView *ringview = new vte::base::RingView();
+                                ringview->set_ring(m_screen->row_data);
+                                ringview->set_rows(m_screen->cursor.row, 1);
+                                ringview->set_width(m_column_count);
+                                ringview->update();
+                                if (ringview->get_row_map(m_screen->cursor.row)->base_is_rtl()) {
+                                        switch (keyval) {
+                                        case GDK_KEY_Left:
+                                                keyval = GDK_KEY_Right;
+                                                break;
+                                        case GDK_KEY_Right:
+                                                keyval = GDK_KEY_Left;
+                                                break;
+                                        case GDK_KEY_KP_Left:
+                                                keyval = GDK_KEY_KP_Right;
+                                                break;
+                                        case GDK_KEY_KP_Right:
+                                                keyval = GDK_KEY_KP_Left;
+                                                break;
+                                        }
+                                }
+                                delete ringview;
+                        }
+
 			_vte_keymap_map(keyval, m_modifiers,
                                         m_modes_private.DEC_APPLICATION_CURSOR_KEYS(),
                                         m_modes_private.DEC_APPLICATION_KEYPAD(),

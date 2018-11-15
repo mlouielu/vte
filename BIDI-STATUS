@@ -12,6 +12,7 @@ Done:
 - VTE_DEBUG=bidi highlights characters with resolved RTL directionality.
 - Test file.
 - Configure flag.
+- Keyboard arrow swapping.
 
 Bugs:
 - Upon a reset, the directionality of cells isn't properly restored.
@@ -37,7 +38,6 @@ Planned future improvements:
 - Play with other possibilities for placing the cursor (especially when it's
   at the end of the logical line).
 - Play with better placement of the preedit box.
-- Keyboard arrow swapping.
 - Remember some lines that are no longer user-accessible as they scroll out,
   to properly BiDi the still remaining part of that paragraph.
 - Possibility for default RTL directionality?
@@ -60,3 +60,5 @@ Useful aliases:
   alias box-normal='echo -ne "\e[?2500l"'
   alias auto='echo -ne "\e[?2501h"'
   alias noauto='echo -ne "\e[?2501l"'
+  alias kbdswap='echo -ne "\e[?2502h"'
+  alias nokbdswap='echo -ne "\e[?2502l"'
