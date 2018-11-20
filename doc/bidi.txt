@@ -180,4 +180,26 @@ squares everywhere.
                                                         [32m╭─╮   a┌─┐z  n╔═╗x   ┏━┓[m[8l[2 k[?2500h
 [36m┗━┛   א╚═╝ת  z└─┘a   ╰─╯[m[?2500l[1 k[8h
 
+                                 ┌────────────┐
+─────────────────────────────────┤ Misc tests ├─────────────────────────────────
+                                 └────────────┘
+[01mAttributes – bold ("lo S"), magenta ("hl")[m
+[32mHel[1mlo[0;32m o[35mi7[32;1mw[m
+[36mHel[1mlo שָׁ[0;35mלו[36mֹם[m
+
+[01mNumbers are simply LTR – "jumps over 123 456 789 Shlm!"[m
+[32mThe quick brown fox jumps over the lazy dog The quick brown fox jumps over 123 4[m
+[32m56 789 oi7w![m
+[36mThe quick brown fox jumps over the lazy dog The quick brown fox jumps over 123 456 789 שָׁלוֹם![m
+
+[01mNumbers are inside RTL – "jumps Shlm 123 456 789 Shlm!"[m
+[32mThe quick brown fox jumps over the lazy dog The quick brown fox jumps 4 123 oi7w[m
+[32moi7w 789 56![m
+[36mThe quick brown fox jumps over the lazy dog The quick brown fox jumps שָׁלוֹם 123 456 789 שָׁלוֹם![m
+
+[01mMirroring across linebreak – "jumps Shlm <[<[<[<[ Shlm!"[m
+[32mThe quick brown fox jumps over the lazy dog The quick brown fox jumps >]>]> oi7w[m
+[32moi7w ]>]![m
+[36mThe quick brown fox jumps over the lazy dog The quick brown fox jumps שָׁלוֹם <[<[<[<[ שָׁלוֹם![m
+
 ────────────────────────────────────────────────────────────────────────────────
