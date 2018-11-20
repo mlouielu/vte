@@ -104,6 +104,7 @@ _VTE_CMD(RM_DEC) /* reset mode dec */
 _VTE_CMD(RM_ECMA) /* reset mode ecma */
 _VTE_CMD(SCORC) /* SCO restore cursor */
 _VTE_CMD(SCOSC) /* SCO save cursor */
+_VTE_CMD(SCP) /* select character path */
 _VTE_CMD(SD) /* scroll down */
 _VTE_CMD(SD_OR_XTERM_IHMT) /* scroll down or xterm initiate highlight mouse tracking */
 _VTE_CMD(SGR) /* select graphics rendition */
@@ -277,7 +278,6 @@ _VTE_NOP(RLOGIN_MML) /* RLogin music macro language */
 _VTE_NOP(SACS) /* set additional character separation */
 _VTE_NOP(SAPV) /* select alternative presentation variants */
 _VTE_NOP(SCO) /* select character orientation */
-_VTE_NOP(SCP) /* select character path */
 _VTE_NOP(SCS) /* set character spacing */
 _VTE_NOP(SDS) /* start directed string */
 _VTE_NOP(SEE) /* select editing extent */

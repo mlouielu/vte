@@ -6913,7 +6913,27 @@ Terminal::SCP(vte::parser::Sequence const& seq)
          *   args[1]: no default
          *
          * References: ECMA-48 § 8.3.111
+         *             [FIXME link to our spec]
          */
+
+        auto const param = seq.collect1(0);
+        switch (param) {
+        case 1:
+                m_bidi_rtl = FALSE;
+                _vte_debug_print(VTE_DEBUG_BIDI, "BiDi: switch to LTR\n");
+                break;
+        case 2:
+                m_bidi_rtl = TRUE;
+                _vte_debug_print(VTE_DEBUG_BIDI, "BiDi: switch to RTL\n");
+                break;
+        default:
+                /* FIXME switch to the emulator's default */
+                m_bidi_rtl = FALSE;
+                _vte_debug_print(VTE_DEBUG_BIDI, "BiDi: default direction restored\n");
+                break;
+        }
+
+        maybe_apply_bidi_attributes();  // FIXME only apply the one that changed here?
 }
 
 void
@@ -7403,6 +7423,8 @@ Terminal::SPD(vte::parser::Sequence const& seq)
         }
 
         maybe_apply_bidi_attributes();  // FIXME only apply the one that changed here?
+
+        // FIXME apply to all the onscreen lines!
 }
 
 void

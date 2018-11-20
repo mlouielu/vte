@@ -1,6 +1,6 @@
 Done:
 - Implicit (level 1) and Explicit (a small subset only) modes (SM / RM 8).
-- Overall LTR or RTL direction (SPD 0 / 3).
+- Overall LTR or RTL direction (SPD 0 / 3 or SCP 1 / 2).
 - Possibility to autodetect paragraph direction (DECSET / DECRST 2501).
 - Possibility to make box drawing characters mirrorable (DECSET / DECRST 2500).
 - I-Beam cursor shows the character's resolved directionality when the
@@ -19,6 +19,7 @@ Bugs:
 - The way the modes apply to paragraphs, and what happens when a paragraph
   is split or two paragraphs are joined is just a first hack, needs to be
   reviewed, adjusted, fixed properly.
+- SPD should also update all the onscreen lines.
 
 Missing from first release:
 - The entire screen is always invalidated. Have some more fine grained
@@ -47,11 +48,10 @@ Not planned at all:
 - Operating on the presentation component (DCSM reset).
 - BiDi in explicit mode by transferring the embedding levels (SDS, SRS...).
 - Escape sequences that modify the emulation behavior (SIMD...).
-- Other silly escape sequences (SCP...).
 
 Useful aliases:
-  alias ltr='echo -ne "\e[0 S"'
-  alias rtl='echo -ne "\e[3 S"'
+  alias ltr='echo -ne "\e[1 k"'
+  alias rtl='echo -ne "\e[2 k"'
   alias implicit='echo -ne "\e[8h"'
   alias explicit='echo -ne "\e[8l"'
   alias bidi='echo -ne "\e[8h"'    # same as implicit

@@ -114,7 +114,7 @@ _VTE_NOQ(MC_DEC,                 CSI,    'i',  WHAT,  0, NONE     ) /* media-cop
 _VTE_NOQ(HPB,                    CSI,    'j',  NONE,  0, NONE     ) /* horizontal position backward */
 _VTE_NOQ(SPL,                    CSI,    'j',  NONE,  1, SPACE    ) /* set page limit */
 _VTE_NOQ(VPB,                    CSI,    'k',  NONE,  0, NONE     ) /* line position backward */
-_VTE_NOQ(SCP,                    CSI,    'k',  NONE,  1, SPACE    ) /* select character path */
+_VTE_SEQ(SCP,                    CSI,    'k',  NONE,  1, SPACE    ) /* select character path */
 _VTE_SEQ(RM_ECMA,                CSI,    'l',  NONE,  0, NONE     ) /* reset-mode-ecma */
 _VTE_SEQ(RM_DEC,                 CSI,    'l',  WHAT,  0, NONE     ) /* reset-mode-dec */
 _VTE_SEQ(SGR,                    CSI,    'm',  NONE,  0, NONE     ) /* select-graphics-rendition */
