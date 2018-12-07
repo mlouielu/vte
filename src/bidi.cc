@@ -362,7 +362,7 @@ vte::grid::row_t RingView::paragraph(vte::grid::row_t row)
         /* For convenience, from now on this variable contains the resolved (i.e. possibly autodetected) value. */
         rtl = (pbase_dir == FRIBIDI_PAR_RTL || pbase_dir == FRIBIDI_PAR_WRTL);
 
-        if (level == 1 || (rtl && level == 2)) {
+        if ((!rtl && level == 1) || (rtl && level == 2)) {
                 /* Fast shortcut for LTR-only and RTL-only paragraphs. */
                 return explicit_paragraph (row_orig, rtl);
         }
@@ -426,7 +426,7 @@ vte::grid::row_t RingView::paragraph(vte::grid::row_t row)
                         goto next_line;
                 }
 
-                if (level == 1 || (rtl && level == 2)) {
+                if ((!rtl && level == 1) || (rtl && level == 2)) {
                         /* Fast shortcut for LTR-only and RTL-only lines. */
                         explicit_line (row, rtl);
                         bidirow->m_has_foreign = true;
