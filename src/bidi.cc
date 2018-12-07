@@ -334,8 +334,8 @@ vte::grid::row_t RingView::paragraph(vte::grid::row_t row)
                         break;
         }
 
-        if (lines == 0) {
-                // huh?
+        if (line == 0) {
+                /* Beyond the end of the ring. */
                 return explicit_paragraph (row_orig, rtl);
         }
 
@@ -382,7 +382,7 @@ vte::grid::row_t RingView::paragraph(vte::grid::row_t row)
                 line = m_start - row;
                 row = m_start;
         }
-        while (row < m_start + m_len) {
+        while (row < _vte_ring_next(m_ring) && row < m_start + m_len) {
                 bidirow = get_row_map_writable(row);
                 bidirow->m_base_rtl = rtl;
                 bidirow->m_has_foreign = true;
