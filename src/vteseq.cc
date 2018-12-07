@@ -463,7 +463,7 @@ Terminal::set_mode_ecma(vte::parser::Sequence const& seq,
                         _vte_debug_print(VTE_DEBUG_BIDI,
                                          "BiDi %s mode\n",
                                          set ? "implicit" : "explicit");
-                        maybe_apply_current_bidi_attributes();  // FIXME only apply the one that changed here?
+                        maybe_apply_bidi_attributes(VTE_BIDI_IMPLICIT);
                 }
         }
 }
@@ -597,14 +597,14 @@ Terminal::set_mode_private(int mode,
                 _vte_debug_print(VTE_DEBUG_BIDI,
                                  "BiDi box drawing mirroring %s\n",
                                  set ? "enabled" : "disabled");
-                maybe_apply_current_bidi_attributes();  // FIXME only apply the one that changed here?
+                maybe_apply_bidi_attributes(VTE_BIDI_BOX_MIRROR);
                 break;
 
         case vte::terminal::modes::Private::eVTE_BIDI_AUTO:
                         _vte_debug_print(VTE_DEBUG_BIDI,
                                          "BiDi dir autodetection %s\n",
                                          set ? "enabled" : "disabled");
-                maybe_apply_current_bidi_attributes();  // FIXME only apply the one that changed here?
+                maybe_apply_bidi_attributes(VTE_BIDI_AUTO);
                 break;
 
         default:
@@ -1034,7 +1034,7 @@ Terminal::line_feed()
 {
         ensure_cursor_is_onscreen();
         cursor_down(true);
-        maybe_apply_current_bidi_attributes();
+        maybe_apply_bidi_attributes(VTE_BIDI_ALL);
 }
 
 void
@@ -6933,7 +6933,7 @@ Terminal::SCP(vte::parser::Sequence const& seq)
                 break;
         }
 
-        maybe_apply_current_bidi_attributes();  // FIXME only apply the one that changed here?
+        maybe_apply_bidi_attributes(VTE_BIDI_RTL);
 }
 
 void
@@ -7422,9 +7422,9 @@ Terminal::SPD(vte::parser::Sequence const& seq)
                 break;
         }
 
-        maybe_apply_current_bidi_attributes();  // FIXME only apply the one that changed here?
+        maybe_apply_bidi_attributes(VTE_BIDI_RTL);
 
-        // FIXME apply to all the onscreen lines!
+        // FIXME apply to all the onscreen lines?
 }
 
 void

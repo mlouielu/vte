@@ -2888,7 +2888,7 @@ Terminal::insert_char(gunichar c,
 			row->attr.soft_wrapped = 1;
                         cursor_down(false);
                         ensure_row();
-                        apply_bidi_attributes(m_screen->cursor.row, row->attr.bidi_flags);
+                        apply_bidi_attributes(m_screen->cursor.row, row->attr.bidi_flags, VTE_BIDI_ALL);
 		} else {
 			/* Don't wrap, stay at the rightmost column. */
                         col = m_screen->cursor.col =
@@ -3041,9 +3041,11 @@ Terminal::get_bidi_flags()
 
 /* Apply the specified BiDi parameters on the paragraph beginning at the specified line. */
 void
-Terminal::apply_bidi_attributes(vte::grid::row_t row, guint8 bidi_flags)
+Terminal::apply_bidi_attributes(vte::grid::row_t row, guint8 bidi_flags, guint8 bidi_flags_mask)
 {
         VteRowData *rowdata;
+
+        bidi_flags &= bidi_flags_mask;
 
         while (true) {
                 rowdata = _vte_ring_index_writable (m_screen->row_data, row);
@@ -3053,7 +3055,9 @@ Terminal::apply_bidi_attributes(vte::grid::row_t row, guint8 bidi_flags)
                 _vte_debug_print(VTE_DEBUG_BIDI,
                                  "Applying BiDi parameters on row %ld.\n", row);
 
-                rowdata->attr.bidi_flags = bidi_flags;
+                rowdata->attr.bidi_flags &= ~bidi_flags_mask;
+                rowdata->attr.bidi_flags |= bidi_flags;
+
                 invalidate_row(row);
                 if (!rowdata->attr.soft_wrapped)
                         return;
@@ -3061,10 +3065,10 @@ Terminal::apply_bidi_attributes(vte::grid::row_t row, guint8 bidi_flags)
         }
 }
 
-/* Apply the current BiDi parameters on the current paragraph if the cursor
- * is at the first position of this paragraph. */
+/* Apply the current BiDi parameters covered by bidi_flags_mask on the current paragraph
+ * if the cursor is at the first position of this paragraph. */
 void
-Terminal::maybe_apply_current_bidi_attributes()
+Terminal::maybe_apply_bidi_attributes(guint8 bidi_flags_mask)
 {
         _vte_debug_print(VTE_DEBUG_BIDI,
                          "Maybe applying BiDi parameters on current paragraph.\n");
@@ -3089,7 +3093,7 @@ Terminal::maybe_apply_current_bidi_attributes()
         _vte_debug_print(VTE_DEBUG_BIDI,
                          "Yes, applying.\n");
 
-        apply_bidi_attributes (row, get_bidi_flags());
+        apply_bidi_attributes (row, get_bidi_flags(), bidi_flags_mask);
 }
 
 static void

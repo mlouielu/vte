@@ -92,6 +92,7 @@ enum {
         VTE_BIDI_RTL        = 1 << 1,
         VTE_BIDI_AUTO       = 1 << 2,
         VTE_BIDI_BOX_MIRROR = 1 << 3,
+        VTE_BIDI_ALL        = (1 << 4) - 1,
 };
 
 struct vte_regex_and_flags {
@@ -653,8 +654,8 @@ public:
         void invalidate_all();
 
         guint8 get_bidi_flags();
-        void apply_bidi_attributes(vte::grid::row_t row, guint8 bidi_flags);
-        void maybe_apply_current_bidi_attributes();
+        void apply_bidi_attributes(vte::grid::row_t row, guint8 bidi_flags, guint8 bidi_flags_mask);
+        void maybe_apply_bidi_attributes(guint8 bidi_flags_mask);
 
         void reset_update_rects();
         bool invalidate_dirty_rects_and_process_updates();
