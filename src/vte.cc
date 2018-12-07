@@ -2817,7 +2817,7 @@ Terminal::insert_char(gunichar c,
                                 bool invalidate_now)
 {
 	VteCellAttr attr;
-	VteRowData *row, *row2;
+	VteRowData *row;
 	long col;
 	int columns, i;
 	bool line_wrapped = false; /* cursor moved before char inserted */
@@ -2887,9 +2887,8 @@ Terminal::insert_char(gunichar c,
 			row = ensure_row();
 			row->attr.soft_wrapped = 1;
                         cursor_down(false);
-
-                        row2 = ensure_row();
-                        row2->attr.bidi_flags = row->attr.bidi_flags;
+                        ensure_row();
+                        apply_bidi_attributes(m_screen->cursor.row, row->attr.bidi_flags);
 		} else {
 			/* Don't wrap, stay at the rightmost column. */
                         col = m_screen->cursor.col =
@@ -3040,10 +3039,32 @@ Terminal::get_bidi_flags()
                (m_modes_private.VTE_BOX_DRAWING_MIRROR() ? VTE_BIDI_BOX_MIRROR : 0);
 }
 
-/* Apply the BiDi parameters on the current paragraph if the cursor
+/* Apply the specified BiDi parameters on the paragraph beginning at the specified line. */
+void
+Terminal::apply_bidi_attributes(vte::grid::row_t row, guint8 bidi_flags)
+{
+        VteRowData *rowdata;
+
+        while (true) {
+                rowdata = _vte_ring_index_writable (m_screen->row_data, row);
+                if (rowdata == nullptr)
+                        return;
+
+                _vte_debug_print(VTE_DEBUG_BIDI,
+                                 "Applying BiDi parameters on row %ld.\n", row);
+
+                rowdata->attr.bidi_flags = bidi_flags;
+                invalidate_row(row);
+                if (!rowdata->attr.soft_wrapped)
+                        return;
+                row++;
+        }
+}
+
+/* Apply the current BiDi parameters on the current paragraph if the cursor
  * is at the first position of this paragraph. */
 void
-Terminal::maybe_apply_bidi_attributes()
+Terminal::maybe_apply_current_bidi_attributes()
 {
         _vte_debug_print(VTE_DEBUG_BIDI,
                          "Maybe applying BiDi parameters on current paragraph.\n");
@@ -3068,16 +3089,7 @@ Terminal::maybe_apply_bidi_attributes()
         _vte_debug_print(VTE_DEBUG_BIDI,
                          "Yes, applying.\n");
 
-        while (TRUE) {
-                VteRowData *rowdata = _vte_ring_index_writable (m_screen->row_data, row);
-                if (rowdata == nullptr)
-                        return;
-                rowdata->attr.bidi_flags = get_bidi_flags();
-                invalidate_row(row);
-                if (!rowdata->attr.soft_wrapped)
-                        return;
-                row++;
-        }
+        apply_bidi_attributes (row, get_bidi_flags());
 }
 
 static void

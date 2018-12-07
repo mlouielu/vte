@@ -653,7 +653,8 @@ public:
         void invalidate_all();
 
         guint8 get_bidi_flags();
-        void maybe_apply_bidi_attributes();
+        void apply_bidi_attributes(vte::grid::row_t row, guint8 bidi_flags);
+        void maybe_apply_current_bidi_attributes();
 
         void reset_update_rects();
         bool invalidate_dirty_rects_and_process_updates();
