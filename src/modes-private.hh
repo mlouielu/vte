@@ -164,9 +164,9 @@ MODE(VTE_BIDI_AUTO, 2501)
  * Whether to swap the Left and Right arrow keys if the cursor
  * stands over an RTL paragraphs.
  *
- * The number choice is temporary.
+ * The number choice is not necessarily final.
  */
-MODE(VTE_BIDI_SWAP_ARROW_KEYS, 2502)
+MODE(VTE_BIDI_SWAP_ARROW_KEYS, 1243)
 
 /* Not supported modes: */
 
