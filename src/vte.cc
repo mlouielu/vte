@@ -380,7 +380,7 @@ Terminal::invalidate_all()
 /* Find the row in the given position in the backscroll buffer.
  * Note that calling this method may invalidate the return value of
  * a previous find_row_data() call. */
-// FIXMEchpe replace this with a method on VteRing
+// FIXMEchpe replace this with a method on VteRing (index_safe())
 VteRowData const*
 Terminal::find_row_data(vte::grid::row_t row) const
 {

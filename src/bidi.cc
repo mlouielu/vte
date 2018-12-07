@@ -175,9 +175,9 @@ void RingView::set_rows(vte::grid::row_t start, vte::grid::row_t len)
 void RingView::update()
 {
         vte::grid::row_t i = m_start;
-        const VteRowData *row_data = m_ring->index(m_start);
+        const VteRowData *row_data = m_ring->index_safe(m_start);
 
-        if (row_data->attr.bidi_flags & VTE_BIDI_IMPLICIT) {
+        if (row_data && (row_data->attr.bidi_flags & VTE_BIDI_IMPLICIT)) {
                 i = find_paragraph(m_start);
                 if (i == -1) {
                         i = explicit_paragraph(m_start, row_data->attr.bidi_flags & VTE_BIDI_RTL);
@@ -237,7 +237,7 @@ vte::grid::row_t RingView::explicit_paragraph(vte::grid::row_t row, bool rtl)
         while (row < m_start + m_len) {
                 explicit_line(row, rtl);
 
-                row_data = m_ring->index(row++);
+                row_data = m_ring->index_safe(row++);
                 if (row_data == nullptr || !row_data->attr.soft_wrapped)
                         break;
         }
@@ -256,7 +256,7 @@ vte::grid::row_t RingView::find_paragraph(vte::grid::row_t row)
         while (row-- > row_stop) {
                 if (row < _vte_ring_delta(m_ring))
                         return row + 1;
-                row_data = m_ring->index(row);
+                row_data = m_ring->index_safe(row);
                 if (row_data == nullptr || !row_data->attr.soft_wrapped)
                         return row + 1;
         }
@@ -267,7 +267,7 @@ vte::grid::row_t RingView::find_paragraph(vte::grid::row_t row)
  * Returns the row number after the paragraph or viewport (whichever ends first). */
 vte::grid::row_t RingView::paragraph(vte::grid::row_t row)
 {
-        const VteRowData *row_data = m_ring->index(row);
+        const VteRowData *row_data = m_ring->index_safe(row);
         if (row_data == nullptr) {
                 return explicit_paragraph(row, false);
         }
@@ -304,7 +304,7 @@ vte::grid::row_t RingView::paragraph(vte::grid::row_t row)
 
         /* Extract the paragraph's contents, omitting unused and fragment cells. */
         while (row < _vte_ring_next(m_ring)) {
-                row_data = m_ring->index(row);
+                row_data = m_ring->index_safe(row);
                 if (row_data == nullptr)
                         break;
 
@@ -388,7 +388,7 @@ vte::grid::row_t RingView::paragraph(vte::grid::row_t row)
                 bidirow->m_has_foreign = true;
                 bidirow->set_width(m_width);
 
-                row_data = m_ring->index(row);
+                row_data = m_ring->index_safe(row);
                 if (row_data == nullptr)
                         break;
 

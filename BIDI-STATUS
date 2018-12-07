@@ -15,7 +15,6 @@ Done:
 - Keyboard arrow swapping.
 
 Bugs:
-- Upon a reset, the directionality of cells isn't properly restored.
 - The way the modes apply to paragraphs, and what happens when a paragraph
   is split or two paragraphs are joined is just a first hack, needs to be
   reviewed, adjusted, fixed properly.

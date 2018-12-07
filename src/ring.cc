@@ -609,6 +609,15 @@ Ring::index(row_t position)
 	return &m_cached_row;
 }
 
+VteRowData const*
+Ring::index_safe(row_t position)
+{
+        if (G_UNLIKELY (position < m_start || position >= m_end))
+                return nullptr;
+
+        return index(position);
+}
+
 /*
  * Returns the hyperlink idx at the given position.
  *

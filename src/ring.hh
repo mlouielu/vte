@@ -73,6 +73,7 @@ public:
         //FIXMEchpe rename this to at()
         //FIXMEchpe use references not pointers
         VteRowData const* index(row_t position); /* const? */
+        VteRowData const* index_safe(row_t position);
         VteRowData* index_writable(row_t position);
 
         void hyperlink_maybe_gc(row_t increment);
