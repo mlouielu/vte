@@ -1,5 +1,5 @@
 /*
- * Copyright © 2018 Egmont Koblinger
+ * Copyright © 2018–2019 Egmont Koblinger
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
