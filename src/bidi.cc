@@ -27,6 +27,9 @@
 #include "vtedefines.hh"
 #include "vteinternal.hh"
 
+#ifdef WITH_FRIBIDI
+static_assert (sizeof (gunichar) == sizeof (FriBidiChar), "Whoooo");
+#endif
 
 using namespace vte::base;
 
@@ -280,6 +283,13 @@ vte::grid::row_t RingView::paragraph(vte::grid::row_t row)
         bool autodir;
         FriBidiParType pbase_dir;
         FriBidiLevel level;
+        FriBidiChar *fribidi_chars;
+        FriBidiCharType *fribidi_chartypes;
+        FriBidiBracketType *fribidi_brackettypes;
+        FriBidiLevel *fribidi_levels;
+        FriBidiStrIndex *fribidi_map;
+        FriBidiStrIndex *fribidi_to_term;
+
         BidiRow *bidirow;
 
         if (!(row_data->attr.bidi_flags & VTE_BIDI_IMPLICIT)) {
@@ -289,20 +299,100 @@ vte::grid::row_t RingView::paragraph(vte::grid::row_t row)
         rtl = row_data->attr.bidi_flags & VTE_BIDI_RTL;
         autodir = row_data->attr.bidi_flags & VTE_BIDI_AUTO;
 
-        int lines[VTE_BIDI_PARAGRAPH_LENGTH_MAX + 1];
+        int lines[VTE_BIDI_PARAGRAPH_LENGTH_MAX + 1];  /* offsets to the beginning of lines */
         lines[0] = 0;
-        int line = 0;
-        int count = 0;
+        int line = 0;   /* line number within the paragraph */
+        int count;      /* total character count */
         int row_orig = row;
-        int tl, tv;  /* terminal logical and visual */
-        int fl, fv;  /* fribidi logical and visual */
+        int tl, tv;     /* terminal logical and visual */
+        int fl, fv;     /* fribidi logical and visual */
         unsigned int col;
 
-        /* The buffer size assumes that combining chars are omitted. It's an overkill, but convenient solution. */
-        // FIXME VLA is a gcc extension, use g_newa() instead
-        FriBidiChar fribidi_chars[VTE_BIDI_PARAGRAPH_LENGTH_MAX * m_width];
+        GArray *fribidi_chars_array   = g_array_new (FALSE, FALSE, sizeof (FriBidiChar));
+        GArray *fribidi_map_array     = g_array_new (FALSE, FALSE, sizeof (FriBidiStrIndex));
+        GArray *fribidi_to_term_array = g_array_new (FALSE, FALSE, sizeof (FriBidiStrIndex));
 
         /* Extract the paragraph's contents, omitting unused and fragment cells. */
+
+        /* Example of what is going on, showing the most important steps:
+         *
+         * Let's take the string produced by this command:
+         *   echo -e "\u0041\u05e9\u05b8\u05c1\u05dc\u05d5\u05b9\u05dd\u0031\u0032\uff1c\u05d0"
+         *
+         * This string consists of:
+         * - English letter A
+         * - Hebrew word Shalom:
+         *     - Letter Shin: ש
+         *         - Combining accent Qamats
+         *         - Combining accent Shin Dot
+         *     - Letter Lamed: ל
+         *     - Letter Vav: ו
+         *         - Combining accent Holam
+         *     - Letter Final Mem: ם
+         * - Digits One and Two
+         * - Full-width less-than sign U+ff1c: ＜
+         * - Hebrew letter Alef: א
+         *
+         * Features of this example:
+         * - Overall LTR direction for convenience (set up by the leading English letter)
+         * - Combining accents within RTL
+         * - Double width character with RTL resolved direction
+         * - A mapping that is not its own inverse (due to the digits being LTR inside RTL inside LTR),
+         *   to help catch if we'd look up something in the wrong direction
+         *
+         * Not demonstrated in this example:
+         * - Wrapping a paragraph to lines
+         * - Spacing marks
+         *
+         * Pre-BiDi (logical) order, using approximating glyphs ("Shalom" is "w7io", Alef is "x"):
+         *   Aw7io12<x
+         *
+         * Post-BiDi (visual) order, using approximating glyphs ("Shalom" is "oi7w", note the mirrored less-than):
+         *   Ax>12oi7w
+         *
+         * Terminal's logical cells:
+         *                 [0]       [1]       [2]      [3]     [4]   [5]   [6]    [7]      [8]         [9]
+         *     row_data:    A   Shin+qam+dot   Lam    Vav+hol   Mem   One   Two   Less   Less (cont)   Alef
+         *
+         * Extracted to pass to FriBidi (combining accents get -1, double wides' continuation cells are skipped):
+         *                        [0]    [1]   [2]   [3]   [4]   [5]   [6]   [7]   [8]   [9]   [10]   [11]
+         *     fribidi_chars:      A    Shin   qam   dot   Lam   Vav   hol   Mem   One   Two   Less   Alef
+         *     fribidi_map:        0      1    -1    -1     4     5    -1     7     8     9     10     11
+         *     fribidi_to_term:    0      1    -1    -1     2     3    -1     4     5     6      7      9
+         *
+         * Embedding levels and other properties (shaping etc.) are looked up:
+         *                        [0]    [1]   [2]   [3]   [4]   [5]   [6]   [7]   [8]   [9]   [10]   [11]
+         *     fribidi_levels:     0      1     1     1     1     1     1     1     2     2      1      1
+         *
+         * The steps above were per-paragraph. The steps below are per-line.
+         *
+         * After fribidi_reorder_line (only this array gets shuffled):
+         *                        [0]    [1]   [2]   [3]   [4]   [5]   [6]   [7]   [8]   [9]   [10]   [11]
+         *     fribidi_map:        0     11    10     8     9     7     5    -1     4     1     -1     -1
+         *
+         * To get the visual order: walk in the new fribidi_map, and for each real entry look up the
+         * logical terminal column using fribidi_to_term:
+         * - map[0] is 0, to_term[0] is 0, hence visual column 0 belongs to logical column 0 (A)
+         * - map[1] is 11, to_term[11] is 9, hence visual column 1 belongs to logical column 9 (Alef)
+         * - map[2] is 10, to_term[10] is 7, row_data[7] is the "<" sign
+         *     - this is a double wide character, we need to map the next two visual cells to two logical cells
+         *     - due to levels[10] being odd, this character has a resolved RTL direction
+         *     - thus we map in reverse order: visual 2 <=> logical 8, visual 3 <=> logical 7
+         *     - the glyph is also mirrorable, it'll be displayed accordingly
+         * - [3] -> 8 -> 5, so visual 4 <=> logical 5 (One)
+         * - [4] -> 9 -> 6, so visual 5 <=> logical 6 (Two)
+         * - [5] -> 7 -> 4, so visual 6 <=> logical 4 (Mem, the last, leftmost letter of Shalom)
+         * - [6] -> 5 -> 3, so visual 7 <=> logical 3 (Vav+hol)
+         * - [7] -> -1, skipped
+         * - [8] -> 4 -> 2, so visual 8 <=> logical 2 (Lam)
+         * - [9] -> 1 -> 1, so visual 9 <=> logical 1 (Shin+qam+dot, the first, rightmost letter of Shalom)
+         * - [10] -> -1, skipped
+         * - [11] -> -1, skipped
+         *
+         * Silly FriBidi API almost allows us to skip one level of indirection, by placing the to_term values
+         * in the map to be shuffled. However, we can't get the embedding levels then.
+         * TODO: File an issue for a better API.
+         */
         while (row < _vte_ring_next(m_ring)) {
                 row_data = m_ring->index_safe(row);
                 if (row_data == nullptr)
@@ -310,6 +400,9 @@ vte::grid::row_t RingView::paragraph(vte::grid::row_t row)
 
                 if (line == VTE_BIDI_PARAGRAPH_LENGTH_MAX) {
                         /* Overlong paragraph, bail out. */
+                        g_array_free (fribidi_chars_array, TRUE);
+                        g_array_free (fribidi_map_array, TRUE);
+                        g_array_free (fribidi_to_term_array, TRUE);
                         return explicit_paragraph (row_orig, rtl);
                 }
 
@@ -317,17 +410,35 @@ vte::grid::row_t RingView::paragraph(vte::grid::row_t row)
                  * Truncate the logical data before applying BiDi. */
                 // FIXME what the heck to do if this truncation cuts a TAB or CJK in half???
                 for (tl = 0; tl < m_width && tl < row_data->len; tl++) {
+                        auto prev_len = fribidi_chars_array->len;
+                        FriBidiStrIndex val;
+
                         cell = _vte_row_data_get (row_data, tl);
                         if (cell->attr.fragment())
                                 continue;
 
-                        // FIXME is it okay to run the BiDi algorithm without the combining accents?
-                        // If we need to preserve them then we need to double check whether
-                        // fribidi_reorder_line() requires a FRIBIDI_FLAG_REORDER_NSM or not.
-                        fribidi_chars[count++] = _vte_unistr_get_base(cell->c);
+                        /* Extract the base character and combining accents.
+                         * Convert mid-line erased cells to spaces.
+                         * Note: see the static assert at the top of this file. */
+                        _vte_unistr_append_to_gunichars (cell->c ? cell->c : ' ', fribidi_chars_array);
+                        /* Make sure at least one character was produced. */
+                        g_assert_cmpint (fribidi_chars_array->len, >, prev_len);
+
+                        /* Track the base character, assign to it its current index in fribidi_chars.
+                         * Don't track combining accents, assign -1's to them. */
+                        val = prev_len;
+                        g_array_append_val (fribidi_map_array, val);
+                        val = tl;
+                        g_array_append_val (fribidi_to_term_array, val);
+                        prev_len++;
+                        val = -1;
+                        while (prev_len++ < fribidi_chars_array->len) {
+                                g_array_append_val (fribidi_map_array, val);
+                                g_array_append_val (fribidi_to_term_array, val);
+                        }
                 }
 
-                lines[++line] = count;
+                lines[++line] = fribidi_chars_array->len;
                 row++;
 
                 if (!row_data->attr.soft_wrapped)
@@ -336,15 +447,22 @@ vte::grid::row_t RingView::paragraph(vte::grid::row_t row)
 
         if (line == 0) {
                 /* Beyond the end of the ring. */
+                g_array_free (fribidi_chars_array, TRUE);
+                g_array_free (fribidi_map_array, TRUE);
+                g_array_free (fribidi_to_term_array, TRUE);
                 return explicit_paragraph (row_orig, rtl);
         }
 
+        /* Convenience stuff, we no longer need the auto-growing GArray wrapper. */
+        count = fribidi_chars_array->len;
+        fribidi_chars = (FriBidiChar *) fribidi_chars_array->data;
+        fribidi_map = (FriBidiStrIndex *) fribidi_map_array->data;
+        fribidi_to_term = (FriBidiStrIndex *) fribidi_to_term_array->data;
+
         /* Run the BiDi algorithm on the paragraph to get the embedding levels. */
-        // FIXME VLA is a gcc extension, use g_newa() instead
-        FriBidiCharType fribidi_chartypes[count];
-        FriBidiBracketType fribidi_brackettypes[count];
-        FriBidiLevel fribidi_levels[count];
-        FriBidiStrIndex fribidi_map[count];
+        fribidi_chartypes = g_newa (FriBidiCharType, count);
+        fribidi_brackettypes = g_newa (FriBidiBracketType, count);
+        fribidi_levels = g_newa (FriBidiLevel, count);
 
         pbase_dir = autodir ? (rtl ? FRIBIDI_PAR_WRTL : FRIBIDI_PAR_WLTR)
                             : (rtl ? FRIBIDI_PAR_RTL  : FRIBIDI_PAR_LTR );
@@ -355,6 +473,9 @@ vte::grid::row_t RingView::paragraph(vte::grid::row_t row)
 
         if (level == 0) {
                 /* error */
+                g_array_free (fribidi_chars_array, TRUE);
+                g_array_free (fribidi_map_array, TRUE);
+                g_array_free (fribidi_to_term_array, TRUE);
                 return explicit_paragraph (row_orig, rtl);
         }
 
@@ -364,15 +485,10 @@ vte::grid::row_t RingView::paragraph(vte::grid::row_t row)
 
         if ((!rtl && level == 1) || (rtl && level == 2)) {
                 /* Fast shortcut for LTR-only and RTL-only paragraphs. */
+                g_array_free (fribidi_chars_array, TRUE);
+                g_array_free (fribidi_map_array, TRUE);
+                g_array_free (fribidi_to_term_array, TRUE);
                 return explicit_paragraph (row_orig, rtl);
-        }
-
-        /* Silly FriBidi API of fribidi_reorder_line()... It reorders whatever values we give to it,
-         * and it would be super convenient for us to pass the logical columns of the terminal.
-         * However, we can't figure out the embedding levels then. So this feature is quite useless.
-         * Set up the trivial mapping for fribidi, and to the mapping manually in fribidi_to_terminal below. */
-        for (fl = 0; fl < count; fl++) {
-                fribidi_map[fl] = fl;
         }
 
         /* Reshuffle line by line. */
@@ -382,6 +498,7 @@ vte::grid::row_t RingView::paragraph(vte::grid::row_t row)
                 line = m_start - row;
                 row = m_start;
         }
+
         while (row < _vte_ring_next(m_ring) && row < m_start + m_len) {
                 bidirow = get_row_map_writable(row);
                 bidirow->m_base_rtl = rtl;
@@ -392,24 +509,6 @@ vte::grid::row_t RingView::paragraph(vte::grid::row_t row)
                 if (row_data == nullptr)
                         break;
 
-                /* Map from FriBidi's to terminal's logical position, see the detailed explanation above. */
-                // FIXME VLA is a gcc extension, use g_newa() instead
-                FriBidiStrIndex fribidi_to_terminal[lines[line + 1] - lines[line]];
-                fl = 0;
-                for (tl = 0; tl < m_width && tl < row_data->len; tl++) {
-                        cell = _vte_row_data_get (row_data, tl);
-                        if (cell->attr.fragment())
-                                continue;
-
-                        fribidi_to_terminal[fl] = tl;
-                        fl++;
-                }
-
-                g_assert_cmpint (fl, ==, lines[line + 1] - lines[line]);
-
-                // FIXME is it okay to run the BiDi algorithm without the combining accents?
-                // If we need to preserve them then we need to have a bigger fribidi_chars array,
-                // and double check whether fribidi_reorder_line() requires a FRIBIDI_FLAG_REORDER_NSM or not.
                 level = fribidi_reorder_line (FRIBIDI_FLAGS_DEFAULT,
                                               fribidi_chartypes,
                                               lines[line + 1] - lines[line],
@@ -446,7 +545,9 @@ vte::grid::row_t RingView::paragraph(vte::grid::row_t row)
                 for (fv = lines[line]; fv < lines[line + 1]; fv++) {
                         /* Inflate fribidi's result by inserting fragments. */
                         fl = fribidi_map[fv];
-                        tl = fribidi_to_terminal[fl - lines[line]];
+                        if (fl == -1)
+                                continue;
+                        tl = fribidi_to_term[fl];
                         cell = _vte_row_data_get (row_data, tl);
                         g_assert (!cell->attr.fragment());
                         g_assert (cell->attr.columns() > 0);
@@ -503,6 +604,10 @@ next_line:
                 if (!row_data->attr.soft_wrapped)
                         break;
         }
+
+        g_array_free (fribidi_chars_array, TRUE);
+        g_array_free (fribidi_map_array, TRUE);
+        g_array_free (fribidi_to_term_array, TRUE);
 
         return row;
 #endif /* !WITH_FRIBIDI */
