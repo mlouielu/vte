@@ -1,23 +1,11 @@
-vte_xml = 'vte.xml'
-vte_glade_xml = vte_api_name + '.xml'
-
 vte_conf = configuration_data()
 vte_conf.set('VTE_API_VERSION', vte_api_version)
 vte_conf.set('VERSION', vte_version)
 
-vte_glade_in = configure_file(
-  input: vte_xml + '.in.in',
-  output: vte_glade_xml + '.in',
+vte_glade = configure_file(
+  input: 'vte.xml.in',
+  output: vte_api_name + '.xml',
   configuration: vte_conf,
-)
-
-intltool_cache = po_dir / '.intltool-merge-cache'
-
-vte_glade = custom_target(
-  vte_glade_xml,
-  input: vte_glade_in,
-  output: '@BASENAME@',
-  command: [find_program('intltool-merge'), '-x', '-u', '-c', intltool_cache, po_dir, '@INPUT@', '@OUTPUT@'],
   install: true,
   install_dir: glade_catalogdir,
 )
