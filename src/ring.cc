@@ -737,7 +737,10 @@ Ring::discard_one_row()
 void
 Ring::maybe_freeze_one_row()
 {
-        if (G_LIKELY(m_mask >= m_visible_rows &&
+        /* Keep at least m_visible_rows + 1 rows in the ring.
+         * The BiDi spec requires that the just scrolled out row
+         * is still alterable (can be switched to hard line ending). */
+        if (G_LIKELY(m_mask >= m_visible_rows + 1 &&
                      m_writable + m_mask + 1 == m_end))
 		freeze_one_row();
 	else
@@ -758,7 +761,8 @@ Ring::ensure_writable_room()
 	row_t new_mask, old_mask, i, end;
 	VteRowData* old_array, *new_array;;
 
-        if (G_LIKELY(m_mask >= m_visible_rows &&
+        /* See the comment about m_visible_rows + 1 above at maybe_freeze_one_row(). */
+        if (G_LIKELY(m_mask >= m_visible_rows + 1 &&
                      m_writable + m_mask + 1 > m_end))
 		return;
 
@@ -767,7 +771,7 @@ Ring::ensure_writable_room()
 
 	do {
 		m_mask = (m_mask << 1) + 1;
-        } while (m_mask < m_visible_rows || m_writable + m_mask + 1 <= m_end);
+        } while (m_mask < m_visible_rows + 1 || m_writable + m_mask + 1 <= m_end);
 
 	_vte_debug_print(VTE_DEBUG_RING, "Enlarging writable array from %lu to %lu\n", old_mask, m_mask);
 
