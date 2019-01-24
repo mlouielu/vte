@@ -85,7 +85,8 @@ public:
         void set_rows(vte::grid::row_t start, vte::grid::row_t len);
         void set_width(vte::grid::column_t width);
 
-        void update();
+        inline void invalidate() { m_invalid = true; }
+        void maybe_update();
 
         BidiRow const* get_row_map(vte::grid::row_t row) const;
 
@@ -99,6 +100,8 @@ private:
         vte::grid::column_t m_width;
 
         vte::grid::row_t m_height_alloc;
+
+        bool m_invalid;
 
         BidiRow* get_row_map_writable(vte::grid::row_t row) const;
 

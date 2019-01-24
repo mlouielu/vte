@@ -138,6 +138,8 @@ RingView::RingView()
         for (int i = 0; i < m_height_alloc; i++) {
                 m_bidirows[i] = new BidiRow();
         }
+
+        m_invalid = true;
 }
 
 RingView::~RingView()
@@ -150,16 +152,27 @@ RingView::~RingView()
 
 void RingView::set_ring(Ring *ring)
 {
+        if (ring == m_ring)
+                return;
+
         m_ring = ring;
+        m_invalid = true;
 }
 
 void RingView::set_width(vte::grid::column_t width)
 {
+        if (width == m_width)
+                return;
+
         m_width = width;
+        m_invalid = true;
 }
 
 void RingView::set_rows(vte::grid::row_t start, vte::grid::row_t len)
 {
+        if (start == m_start && len == m_len)
+                return;
+
         if (G_UNLIKELY (len > m_height_alloc)) {
                 int i = m_height_alloc;
                 while (len > m_height_alloc) {
@@ -173,10 +186,14 @@ void RingView::set_rows(vte::grid::row_t start, vte::grid::row_t len)
 
         m_start = start;
         m_len = len;
+        m_invalid = true;
 }
 
-void RingView::update()
+void RingView::maybe_update()
 {
+        if (!m_invalid)
+                return;
+
         vte::grid::row_t i = m_start;
         const VteRowData *row_data = m_ring->index_safe(m_start);
 
@@ -189,12 +206,16 @@ void RingView::update()
         while (i < m_start + m_len) {
                 i = paragraph(i);
         }
+
+        m_invalid = false;
 }
 
 BidiRow const* RingView::get_row_map(vte::grid::row_t row) const
 {
         g_assert_cmpint (row, >=, m_start);
         g_assert_cmpint (row, <, m_start + m_len);
+        g_assert_false (m_invalid);
+
         return m_bidirows[row - m_start];
 }
 
@@ -202,6 +223,7 @@ BidiRow* RingView::get_row_map_writable(vte::grid::row_t row) const
 {
         g_assert_cmpint (row, >=, m_start);
         g_assert_cmpint (row, <, m_start + m_len);
+
         return m_bidirows[row - m_start];
 }
 

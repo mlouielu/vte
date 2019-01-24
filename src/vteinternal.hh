@@ -1311,6 +1311,8 @@ public:
                                    vte::parser::StringTokeniser::const_iterator& token,
                                    vte::parser::StringTokeniser::const_iterator const& endtoken) noexcept;
 
+        void ringview_maybe_update();
+
         /* Sequence handlers */
         bool m_line_wrapped; // signals line wrapped from character insertion
         // Note: inlining the handlers seems to worsen the performance, so we don't do that

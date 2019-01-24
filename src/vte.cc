@@ -1635,15 +1635,7 @@ Terminal::selection_maybe_swap_endpoints(vte::view::coords const& pos)
         if (m_selection_resolved.empty())
                 return;
 
-
-
-        // FIXME find a nicer place for these
-        m_ringview.set_ring (m_screen->row_data);
-        m_ringview.set_rows ((long) m_screen->scroll_delta, m_row_count + 3);
-        m_ringview.set_width (m_column_count);
-        m_ringview.update ();
-
-
+        ringview_maybe_update();
 
         auto current = selection_grid_halfcoords_from_view_coords (pos);
 
@@ -3856,6 +3848,11 @@ Terminal::process_incoming()
 		queue_contents_changed();
 	}
 
+        /* BiDi properties might have changed, even when !modified.
+         * emit_pending_signals() requires the ringview to be updated. */
+        m_ringview.invalidate();
+        ringview_maybe_update();
+
 	emit_pending_signals();
 
 	if (invalidated_text) {
@@ -4982,13 +4979,13 @@ Terminal::widget_key_press(GdkEventKey *event)
                              keyval == GDK_KEY_Right ||
                              keyval == GDK_KEY_KP_Left ||
                              keyval == GDK_KEY_KP_Right)) {
-                                /* m_ringview is for the onscreen contents and the cursor
-                                 * may be offscreen, so use a temporary ringview. */
+                                /* m_ringview is for the onscreen contents and the cursor may be
+                                 * offscreen, so use a temporary ringview for the cursor's row. */
                                 vte::base::RingView *ringview = new vte::base::RingView();
                                 ringview->set_ring(m_screen->row_data);
                                 ringview->set_rows(m_screen->cursor.row, 1);
                                 ringview->set_width(m_column_count);
-                                ringview->update();
+                                ringview->maybe_update();
                                 if (ringview->get_row_map(m_screen->cursor.row)->base_is_rtl()) {
                                         switch (keyval) {
                                         case GDK_KEY_Left:
@@ -5534,15 +5531,7 @@ Terminal::modify_selection (vte::view::coords const& pos)
 {
         g_assert (m_selecting);
 
-
-
-        // FIXME find a nicer place for these
-        m_ringview.set_ring (m_screen->row_data);
-        m_ringview.set_rows ((long) m_screen->scroll_delta, m_row_count + 3);
-        m_ringview.set_width (m_column_count);
-        m_ringview.update ();
-
-
+        ringview_maybe_update();
 
         auto current = selection_grid_halfcoords_from_view_coords (pos);
 
@@ -5931,14 +5920,6 @@ Terminal::hyperlink_hilite_update()
         if (!m_allow_hyperlink)
                 return;
 
-
-        // FIXME find a nicer place for these
-        m_ringview.set_ring (m_screen->row_data);
-        m_ringview.set_rows ((long) m_screen->scroll_delta, m_row_count + 3);
-        m_ringview.set_width (m_column_count);
-        m_ringview.update ();
-
-
         _vte_debug_print (VTE_DEBUG_HYPERLINK,
                          "hyperlink_hilite_update\n");
 
@@ -6047,14 +6028,6 @@ Terminal::match_hilite_update()
 
         glong col = pos.x / m_cell_width;
         glong row = pixel_to_row(pos.y);
-
-
-        // FIXME find a nicer place for these
-        m_ringview.set_ring (m_screen->row_data);
-        m_ringview.set_rows ((long) m_screen->scroll_delta, m_row_count + 3);
-        m_ringview.set_width (m_column_count);
-        m_ringview.update ();
-
 
         /* BiDi: convert to logical column. */
         vte::base::BidiRow const* bidirow = m_ringview.get_row_map(confine_grid_row(row));
@@ -6282,12 +6255,12 @@ Terminal::get_text(vte::grid::row_t start_row,
                  * m_ringview corresponds to the currently onscreen bits, therefore does not
                  * necessarily include the entire selection.
                  * Modifying m_ringview and then reverting would be a bit cumbersome,
-                 * creating a new one for the selection is cleaner. */
+                 * creating a new one for the selection is simpler. */
                 ringview = new vte::base::RingView();
                 ringview->set_ring(m_screen->row_data);
                 ringview->set_rows(start_row, end_row - start_row + 1);
                 ringview->set_width(m_column_count);
-                ringview->update();
+                ringview->maybe_update();
         }
 
         vte::grid::column_t col = block ? 0 : start_col;
@@ -6833,16 +6806,6 @@ Terminal::start_selection (vte::view::coords const& pos,
 	if (m_selection_block_mode)
 		type = selection_type_char;
 
-
-
-        // FIXME find a nicer place for these
-        m_ringview.set_ring (m_screen->row_data);
-        m_ringview.set_rows ((long) m_screen->scroll_delta, m_row_count + 3);
-        m_ringview.set_width (m_column_count);
-        m_ringview.update ();
-
-
-
         m_selection_origin = m_selection_last = selection_grid_halfcoords_from_view_coords(pos);
 
 	/* Record the selection type. */
@@ -7004,6 +6967,8 @@ Terminal::widget_motion_notify(GdkEventMotion *event)
 {
 	bool handled = false;
 
+        ringview_maybe_update();
+
         GdkEvent* base_event = reinterpret_cast<GdkEvent*>(event);
         auto pos = view_coords_from_event(base_event);
         auto rowcol = grid_coords_from_view_coords(pos);
@@ -7011,6 +6976,8 @@ Terminal::widget_motion_notify(GdkEventMotion *event)
 	_vte_debug_print(VTE_DEBUG_EVENTS,
                          "Motion notify %s %s\n",
                          pos.to_string(), rowcol.to_string());
+
+        ringview_maybe_update();
 
 	read_modifiers(base_event);
 
@@ -7068,6 +7035,8 @@ Terminal::widget_button_press(GdkEventButton *event)
 {
 	bool handled = false;
 	gboolean start_selecting = FALSE, extend_selecting = FALSE;
+
+        ringview_maybe_update();
 
         GdkEvent* base_event = reinterpret_cast<GdkEvent*>(event);
         auto pos = view_coords_from_event(base_event);
@@ -7218,6 +7187,8 @@ Terminal::widget_button_release(GdkEventButton *event)
 {
 	bool handled = false;
 
+        ringview_maybe_update();
+
         GdkEvent* base_event = reinterpret_cast<GdkEvent*>(event);
         auto pos = view_coords_from_event(base_event);
         auto rowcol = grid_coords_from_view_coords(pos);
@@ -7335,6 +7306,8 @@ Terminal::widget_focus_out(GdkEventFocus *event)
 void
 Terminal::widget_enter(GdkEventCrossing *event)
 {
+        ringview_maybe_update();
+
         GdkEvent* base_event = reinterpret_cast<GdkEvent*>(event);
         auto pos = view_coords_from_event(base_event);
 
@@ -7352,6 +7325,8 @@ Terminal::widget_enter(GdkEventCrossing *event)
 void
 Terminal::widget_leave(GdkEventCrossing *event)
 {
+        ringview_maybe_update();
+
         GdkEvent* base_event = reinterpret_cast<GdkEvent*>(event);
         auto pos = view_coords_from_event(base_event);
 
@@ -9004,6 +8979,22 @@ Terminal::draw_cells_with_attributes(struct _vte_draw_text_request *items,
 }
 
 
+void
+Terminal::ringview_maybe_update()
+{
+        m_ringview.set_ring (m_screen->row_data);
+        /* Due to possibly unaligned height and per-pixel scrolling, up to 2 more lines than the
+         * logical height can be partially visible.
+         * If a row is just underneath the current viewport, we still need to run BiDi on it
+         * because the top an outlined rectangle cursor shape peeks in into the viewport, and we need
+         * to know where the BiDi algorithm maps that cursor. However, +2 is still enough for this
+         * as long as the outline cursor is 1px thin. If we ever make it wider, we'll need +3.
+         */
+        m_ringview.set_rows ((long) m_screen->scroll_delta, m_row_count + 2);
+        m_ringview.set_width (m_column_count);
+        m_ringview.maybe_update ();
+}
+
 /* XXX tmp hack */
 #define _vte_row_data_get_visual(row_data_p, bidimap, col) \
         row_data_p == nullptr ? nullptr : _vte_row_data_get(row_data_p, bidimap->vis2log(col))
@@ -9038,16 +9029,6 @@ Terminal::draw_rows(VteScreen *screen_,
         uint32_t const attr_mask = m_allow_bold ? ~0 : ~VTE_ATTR_BOLD_MASK;
 
         items = g_newa (struct _vte_draw_text_request, column_count);
-
-
-
-        // FIXME find a nicer place for these
-        m_ringview.set_ring (m_screen->row_data);
-        m_ringview.set_rows ((long) m_screen->scroll_delta, m_row_count + 3);
-        m_ringview.set_width (m_column_count);
-        m_ringview.update ();
-
-
 
         /* Paint the background.
          * Do it first for all the cells we're about to paint, before drawing the glyphs,
@@ -9340,17 +9321,6 @@ Terminal::paint_cursor()
 	if (CLAMP(col, 0, m_column_count - 1) != col)
 		return;
 
-
-
-
-        // FIXME find a nicer place for these
-        m_ringview.set_ring (m_screen->row_data);
-        m_ringview.set_rows ((long) m_screen->scroll_delta, m_row_count + 3);
-        m_ringview.set_width (m_column_count);
-        m_ringview.update ();
-
-
-
         /* Find the first cell of the character "under" the cursor.
          * This is for CJK.  For TAB, paint the cursor where it really is. */
         VteRowData const *row_data = find_row_data(drow);
@@ -9597,6 +9567,8 @@ Terminal::widget_draw(cairo_t *cr)
         if (region == NULL)
                 return;
 
+        ringview_maybe_update();
+
         allocated_width = get_allocated_width();
         allocated_height = get_allocated_height();
 
@@ -9756,6 +9728,8 @@ Terminal::widget_scroll(GdkEventScroll *event)
 
         GdkEvent *base_event = reinterpret_cast<GdkEvent*>(event);
 
+        ringview_maybe_update();
+
 	read_modifiers(base_event);
 
 	switch (event->direction) {
@@ -9788,12 +9762,6 @@ Terminal::widget_scroll(GdkEventScroll *event)
 		_vte_debug_print(VTE_DEBUG_EVENTS,
 				"Scroll application by %d lines, smooth scroll delta set back to %f\n",
 				cnt, m_mouse_smooth_scroll_delta);
-
-                // FIXME find a nicer place for these – rowcol below needs an updated ringview to do BiDi
-                m_ringview.set_ring (m_screen->row_data);
-                m_ringview.set_rows ((long) m_screen->scroll_delta, m_row_count + 3);
-                m_ringview.set_width (m_column_count);
-                m_ringview.update ();
 
                 auto rowcol = confined_grid_coords_from_event(base_event);
 
