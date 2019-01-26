@@ -328,6 +328,12 @@ Terminal::clear_current_line()
 void
 Terminal::clear_above_current()
 {
+        /* Make the preceding line hard wrapped, even if it's just scrolled out, as per the BiDi spec. */
+        if (m_screen->insert_delta > _vte_ring_delta(m_screen->row_data)) {
+                auto rowdata = _vte_ring_index_writable(m_screen->row_data, m_screen->insert_delta - 1);
+                rowdata->attr.soft_wrapped = 0;
+                invalidate_row(m_screen->insert_delta - 1);  // FIXME
+        }
 	/* If the cursor is actually on the screen, clear data in the row
 	 * which corresponds to the cursor. */
         for (auto i = m_screen->insert_delta; i < m_screen->cursor.row; i++) {
@@ -755,7 +761,8 @@ Terminal::clear_below_current()
                         _vte_row_data_fill(rowdata, &m_fill_defaults, m_column_count);
 		}
 		rowdata->attr.soft_wrapped = 0;
-                rowdata->attr.bidi_flags = get_bidi_flags();
+		if (i > m_screen->cursor.row)
+                        rowdata->attr.bidi_flags = get_bidi_flags();
 		/* Repaint this row. */
                 invalidate_row(i);
 	}
