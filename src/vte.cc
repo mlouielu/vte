@@ -10608,8 +10608,13 @@ Terminal::process(bool emit_adj_changed)
                         process_incoming();
                 }
                 m_input_bytes = 0;
-        } else
+        } else {
+                // FIXMEegmont why is it needed here, and is this the best place?
+                // Without this, sudden two-finger kinetic scrolls result in crash.
+                ringview_maybe_update();
+
                 emit_pending_signals();
+        }
 
         return is_active;
 }
