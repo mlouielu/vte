@@ -287,7 +287,7 @@ font_info_cache_ascii (struct font_info *info)
 	gboolean more;
 	PangoLanguage *language;
 	gboolean latin_uses_default_language;
-	
+
 	/* We have info->layout holding most ASCII characters.  We want to
 	 * cache as much info as we can about the ASCII letters so we don't
 	 * have to look them up again later */
@@ -453,7 +453,7 @@ font_info_free (struct font_info *info)
 
 	for (i = 0; i < G_N_ELEMENTS (info->ascii_unistr_info); i++)
 		unistr_info_finish (&info->ascii_unistr_info[i]);
-		
+
 	if (info->other_unistr_info) {
 		g_hash_table_destroy (info->other_unistr_info);
 	}

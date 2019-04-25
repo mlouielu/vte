@@ -187,6 +187,20 @@ void vte_terminal_copy_primary(VteTerminal *terminal) _VTE_GNUC_NONNULL(1);
 _VTE_PUBLIC
 void vte_terminal_paste_primary(VteTerminal *terminal) _VTE_GNUC_NONNULL(1);
 _VTE_PUBLIC
+void vte_terminal_select_text(VteTerminal *terminal,
+                              gint start_col,
+                              gint start_row,
+                              gint end_col,
+                              gint end_row) _VTE_GNUC_NONNULL(1);
+_VTE_PUBLIC
+void vte_terminal_e_select_text(VteTerminal *terminal,
+                                gint start_col,
+                                gint start_row,
+                                gint end_col,
+                                gint end_row) _VTE_GNUC_NONNULL(1);
+_VTE_PUBLIC
+void vte_terminal_e_unselect_all(VteTerminal *terminal) _VTE_GNUC_NONNULL(1);
+_VTE_PUBLIC
 void vte_terminal_select_all(VteTerminal *terminal) _VTE_GNUC_NONNULL(1);
 _VTE_PUBLIC
 void vte_terminal_unselect_all(VteTerminal *terminal) _VTE_GNUC_NONNULL(1);

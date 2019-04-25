@@ -394,6 +394,8 @@ public:
         enum vte_selection_type m_selection_type;
         vte::grid::halfcoords m_selection_origin, m_selection_last;
         vte::grid::span m_selection_resolved;
+        vte::grid::span m_selection_multiple_resolved[1000];
+        gint m_selection_multiple_resolved_index;
 
 	/* Clipboard data information. */
         bool m_selection_owned[LAST_VTE_SELECTION];
@@ -919,6 +921,8 @@ public:
         void modify_selection(vte::view::coords const& pos);
         bool cell_is_selected(vte::grid::column_t col,
                               vte::grid::row_t) const;
+        bool cell_is_e_selected(vte::grid::column_t col,
+                                vte::grid::row_t) const;
 
         void reset_default_attributes(bool reset_hyperlink);
 
@@ -1222,6 +1226,11 @@ public:
                                    vte::grid::column_t end_col);
 
         void subscribe_accessible_events();
+        void e_select_text(vte::grid::column_t start_col,
+                           vte::grid::row_t start_row,
+                           vte::grid::column_t end_col,
+                           vte::grid::row_t end_row);
+        void e_unselect_all();
         void select_text(vte::grid::column_t start_col,
                          vte::grid::row_t start_row,
                          vte::grid::column_t end_col,

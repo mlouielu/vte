@@ -5405,6 +5405,30 @@ Terminal::modify_selection (vte::view::coords const& pos)
 
 /* Check if a cell is selected or not. */
 bool
+Terminal::cell_is_e_selected(vte::grid::column_t col,
+                                     vte::grid::row_t row) const
+{
+        if (m_selection_block_mode) {
+                /* In block mode, make sure CJKs and TABs aren't cut in half. */
+                while (col > 0) {
+                        VteCell const* cell = find_charcell(col, row);
+                        if (!cell || !cell->attr.fragment())
+                                break;
+                        col--;
+                }
+                return m_selection_resolved.box_contains ({ row, col });
+        } else {
+                /* In normal modes, resolve_selection() made sure to generate such boundaries for m_selection_resolved. */
+                for (size_t i=0; i < m_selection_multiple_resolved_index; ++i) {
+                        if (m_selection_multiple_resolved[i].contains({row, col})) {
+                                return TRUE;
+                        }
+                }
+                return m_selection_resolved.contains ({ row, col });
+        }
+}
+
+bool
 Terminal::cell_is_selected(vte::grid::column_t col,
                                      vte::grid::row_t row) const
 {
@@ -8826,7 +8850,7 @@ Terminal::draw_rows(VteScreen *screen_,
                         /* Get the first cell's contents. */
                         cell = row_data ? _vte_row_data_get (row_data, i) : nullptr;
                         /* Find the colors for this cell. */
-                        selected = cell_is_selected(i, row);
+                        selected = cell_is_e_selected(i, row);
                         determine_colors(cell, selected, &fore, &back, &deco);
 
                         while (++j < column_count) {
@@ -8835,7 +8859,7 @@ Terminal::draw_rows(VteScreen *screen_,
                                 /* Resolve attributes to colors where possible and
                                  * compare visual attributes to the first character
                                  * in this chunk. */
-                                selected = cell_is_selected(j, row);
+                                selected = cell_is_e_selected(j, row);
                                 determine_colors(cell, selected, &nfore, &nback, &ndeco);
                                 if (nback != back) {
                                         break;
@@ -8843,7 +8867,14 @@ Terminal::draw_rows(VteScreen *screen_,
                         }
                         if (back != VTE_DEFAULT_BG) {
                                 vte::color::rgb bg;
-                                rgb_from_index<8, 8, 8>(back, bg);
+                                if (cell_is_selected(i, row)) {
+                                        // XXX: should be configurable
+                                        bg.red = 65535;
+                                        bg.blue = 0;
+                                        bg.green = 0;
+                                } else {
+                                        rgb_from_index<8, 8, 8>(back, bg);
+                                }
                                 _vte_draw_fill_rectangle (m_draw,
                                                           i * column_width,
                                                           y,
@@ -8893,7 +8924,7 @@ Terminal::draw_rows(VteScreen *screen_,
 
                         /* Find the colors for this cell. */
                         nattr = cell->attr.attr;
-                        selected = cell_is_selected(col, row);
+                        selected = cell_is_e_selected(col, row);
                         determine_colors(cell, selected, &nfore, &nback, &ndeco);
 
                         nhilite = (nhyperlink && cell->attr.hyperlink_idx == m_hyperlink_hover_idx) ||
@@ -10079,10 +10110,52 @@ Terminal::select_text(vte::grid::column_t start_col,
 	m_selecting_had_delta = true;
         m_selection_resolved.set ({ start_row, start_col },
                                   { end_row, end_col });
+
         widget_copy(VTE_SELECTION_PRIMARY, VTE_FORMAT_TEXT);
-	emit_selection_changed();
+        emit_selection_changed();
 
         invalidate_rows(start_row, end_row);
+}
+
+void
+Terminal::e_select_text(vte::grid::column_t start_col,
+                                vte::grid::row_t start_row,
+                                vte::grid::column_t end_col,
+                                vte::grid::row_t end_row)
+{
+        vte::grid::row_t last_end_row;
+        vte::grid::span selection;
+        int token = 0;
+
+        m_selection_type = selection_type_char;
+        m_selecting_had_delta = true;
+
+        last_end_row = m_screen->scroll_delta;
+        start_row += last_end_row;
+        end_row += last_end_row;
+
+        selection.set ({ start_row, start_col },
+                       { end_row, end_col });
+        for (int i = 0; i < m_selection_multiple_resolved_index; ++i) {
+                if (m_selection_multiple_resolved[i] == selection) {
+                        token = 1;
+                }
+        }
+        if (!token) {
+                m_selection_multiple_resolved[
+                    m_selection_multiple_resolved_index++].set({start_row, start_col},
+                                                               {end_row, end_col});
+        }
+
+        invalidate_rows(start_row, end_row);
+}
+
+void
+Terminal::e_unselect_all()
+{
+        if (m_selection_multiple_resolved_index) {
+                m_selection_multiple_resolved_index = 0;
+        }
 }
 
 void
@@ -10597,6 +10670,7 @@ Terminal::search_set_regex (VteRegex *regex,
             rx->match_flags == flags)
                 return false;
 
+
         regex_and_flags_clear(rx);
 
         if (regex != nullptr) {
@@ -10604,6 +10678,7 @@ Terminal::search_set_regex (VteRegex *regex,
                 rx->match_flags = flags;
         }
 
+        m_selection_multiple_resolved_index = 0;
 	invalidate_all();
 
         return true;
@@ -10698,6 +10773,8 @@ Terminal::search_rows(pcre2_match_context_8 *match_context,
 
 	g_string_free (row_text, TRUE);
 
+	_vte_debug_print(VTE_DEBUG_SELECTION, "Search found at: %ld %ld %ld %ld\n",
+                         start_col, start_row, end_col, end_row);
 	select_text(start_col, start_row, end_col, end_row);
 	/* Quite possibly the math here should not access adjustment directly... */
 	value = gtk_adjustment_get_value(m_vadjustment);
@@ -10735,7 +10812,7 @@ Terminal::search_rows_iter(pcre2_match_context_8 *match_context,
 
 			if (search_rows(match_context, match_data,
                                         iter_start_row, iter_end_row, backward))
-				return true;
+                                return true;
 		}
 	} else {
 		iter_end_row = start_row;

@@ -2389,6 +2389,47 @@ vte_terminal_unselect_all(VteTerminal *terminal)
 }
 
 /**
+ * vte_terminal_select_text:
+ * @terminal: a #VteTerminal
+ * @start_col: a #gint
+ * @start_row: a #gint
+ * @end_col: a #gint
+ * @end_row: a #gint
+ * Selects all text within the terminal (including the scrollback buffer).
+ */
+void
+vte_terminal_select_text (VteTerminal *terminal,
+                         gint start_col,
+                         gint start_row,
+                         gint end_col,
+                         gint end_row)
+{
+	g_return_if_fail (VTE_IS_TERMINAL (terminal));
+
+        IMPL(terminal)->select_text(start_col, start_row, end_col, end_row);
+}
+
+void
+vte_terminal_e_select_text (VteTerminal *terminal,
+                          gint start_col,
+                          gint start_row,
+                          gint end_col,
+                          gint end_row)
+{
+        g_return_if_fail (VTE_IS_TERMINAL (terminal));
+
+        IMPL(terminal)->e_select_text(start_col, start_row, end_col, end_row);
+}
+
+void
+vte_terminal_e_unselect_all (VteTerminal *terminal)
+{
+        g_return_if_fail (VTE_IS_TERMINAL (terminal));
+
+        IMPL(terminal)->e_unselect_all();
+}
+
+/**
  * vte_terminal_get_cursor_position:
  * @terminal: a #VteTerminal
  * @column: (out) (allow-none): a location to store the column, or %NULL
